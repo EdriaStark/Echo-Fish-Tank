@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="一个在浏览器本地整理文章语料、准备写作风格蒸馏的工作台。" />
+    <title>写作 DNA · 工作台</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="#top" aria-label="写作 DNA 工作台首页">
+          <span class="brand-mark">文</span>
+          <span>写作 DNA</span>
+        </a>
+        <p class="local-note"><i></i>文件仅在你的浏览器中处理</p>
+      </header>
+
+      <section class="hero" id="top">
+        <p class="eyebrow">WRITING STYLE DISTILLERY</p>
+        <h1>把文章，变成<br /><em>可复用的写作方法。</em></h1>
+        <p class="hero-copy">导入一组完整文章，整理成可供 AI 分析的语料库。积累到 20 篇后，即可开始提炼属于你的写作 DNA。</p>
+      </section>
+
+      <section class="progress-section" aria-label="工作进度">
+        <div class="progress-head"><span>语料准备度</span><strong id="progressLabel">0 / 20 篇</strong></div>
+        <div class="meter" aria-hidden="true"><span id="progressBar"></span></div>
+        <p id="progressMessage">从第一篇完整文章开始。建议使用同一作者或账号的内容。</p>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="upload-panel">
+          <div class="section-heading"><p class="eyebrow">01 · 导入语料</p><h2>放入你的文章</h2></div>
+          <label class="dropzone" id="dropzone" for="fileInput">
+            <input id="fileInput" type="file" accept=".md,.txt,text/markdown,text/plain" multiple />
+            <span class="upload-icon">↥</span>
+            <strong>拖入文件，或点击选择</strong>
+            <small>支持 .md 与 .txt，可一次导入多篇</small>
+          </label>
+          <div class="field-row">
+            <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
+            <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
+          </div>
+          <p class="privacy-note">上传的内容不会离开本设备；刷新页面后文件将被清空。</p>
+        </div>
+
+        <aside class="insight-panel">
+          <p class="eyebrow">02 · 语料概览</p>
+          <div class="stat"><strong id="articleCount">0</strong><span>篇文章</span></div>
+          <div class="stat"><strong id="wordCount">0</strong><span>总字数</span></div>
+          <div class="stat"><strong id="averageCount">0</strong><span>平均字数</span></div>
+          <div class="status-card" id="statusCard"><span class="status-dot"></span><p><b>尚未就绪</b><br />还需导入 20 篇完整文章</p></div>
+        </aside>
+      </section>
+
+      <section class="articles-section">
+        <div class="articles-head">
+          <div><p class="eyebrow">03 · 文章清单</p><h2>已导入的语料</h2></div>
+          <button class="text-button" id="clearButton" type="button" disabled>清空全部</button>
+        </div>
+        <div class="empty-state" id="emptyState"><span>✦</span><p>还没有文章。导入后会在这里显示标题、字数与格式。</p></div>
+        <ul class="article-list" id="articleList" aria-live="polite"></ul>
+      </section>
+
+      <section class="action-section">
+        <div>
+          <p class="eyebrow">04 · 交给 AI 分析</p>
+          <h2>先做一次本地预分析</h2>
+          <p>在浏览器内生成文章长度、段落与句子节奏等基础观察，再下载完整语料交接包，交给支持「写作 DNA」分析的 AI 深入蒸馏。</p>
+        </div>
+        <div class="action-buttons">
+          <button class="secondary-button" id="scanButton" type="button" disabled>生成预分析</button>
+          <button class="primary-button" id="exportButton" type="button" disabled>导出分析包 <span>→</span></button>
+        </div>
+      </section>
+
+      <section class="report-section" id="reportSection" hidden>
+        <div class="report-head"><div><p class="eyebrow">LOCAL PRE-SCAN</p><h2>语料预分析</h2></div><button class="text-button" id="downloadReportButton" type="button">下载 Markdown</button></div>
+        <div class="report-grid" id="reportGrid"></div>
+        <p class="report-disclaimer">这是本地统计与观察，不等同于完整的风格蒸馏。完整 DNA 仍应由 AI 结合全文、结构和选题语境进行分析。</p>
+      </section>
+
+      <section class="how-section">
+        <p class="eyebrow">HOW IT WORKS</p>
+        <ol>
+          <li><span>01</span><b>收集</b><p>上传至少 20 篇完整文章。</p></li>
+          <li><span>02</span><b>导出</b><p>下载专属语料交接包。</p></li>
+          <li><span>03</span><b>蒸馏</b><p>交给 AI 提炼语言、结构与思维方式。</p></li>
+        </ol>
+      </section>
+    </main>
+    <footer>WRITE WITH INTENTION · MADE FOR YOUR WORDS</footer>
+    <script src="app.js"></script>
+  </body>
+</html>
