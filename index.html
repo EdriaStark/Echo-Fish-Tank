@@ -63,7 +63,7 @@
         </div>
 
         <aside class="insight-panel">
-          <p class="eyebrow">02 · 语料概览</p>
+          <p class="eyebrow">语料概览</p>
           <div class="stat"><strong id="articleCount">0</strong><span>篇文章</span></div>
           <div class="stat"><strong id="wordCount">0</strong><span>总字数</span></div>
           <div class="stat"><strong id="averageCount">0</strong><span>平均字数</span></div>
@@ -73,7 +73,7 @@
 
       <section class="articles-section">
         <div class="articles-head">
-          <div><p class="eyebrow">03 · 文章清单</p><h2>已导入的语料</h2></div>
+          <div><p class="eyebrow">已导入内容</p><h2>已导入的语料</h2></div>
           <button class="text-button" id="clearButton" type="button" disabled>清空全部</button>
         </div>
         <div class="empty-state" id="emptyState"><div class="empty-mark" aria-hidden="true">0</div><h3>从第一篇文章开始</h3><p>导入 Markdown、文本文件或一个 ZIP，文章会保存在你的浏览器中。</p><button class="secondary-button empty-upload" id="emptyUploadButton" type="button">导入文章</button></div>
@@ -93,9 +93,17 @@
       </section>
 
       <section class="report-section" id="reportSection" hidden>
-        <div class="report-head"><div><p class="eyebrow">LOCAL PRE-SCAN</p><h2>语料预分析</h2></div><button class="text-button" id="downloadReportButton" type="button">下载 Markdown</button></div>
+        <div class="report-head">
+          <div><p class="eyebrow">分析结果</p><h2>你的 Writing DNA</h2></div>
+          <button class="text-button" id="downloadReportButton" type="button">下载分析报告</button>
+        </div>
+        <p class="report-intro">先从写作画像开始。其余观察按需展开，避免让数字淹没结论。</p>
         <div class="report-grid" id="reportGrid"></div>
-        <p class="report-disclaimer">这是本地统计与观察，不等同于完整的风格蒸馏。完整 DNA 仍应由 AI 结合全文、结构和选题语境进行分析。</p>
+        <details class="analysis-details" id="analysisDetails">
+          <summary><span><b>展开完整语言画像</b><small>词汇、节奏、情绪、结构与 AI 提示词</small></span><span class="details-control" aria-hidden="true">+</span></summary>
+          <div class="analysis-detail-grid" id="analysisDetailGrid"></div>
+        </details>
+        <p class="report-disclaimer">这些结果由浏览器在本地根据你的文章统计生成，用于发现线索。完整的风格判断仍应结合全文与选题语境。</p>
       </section>
 
       <section class="how-section" id="how-it-works">
