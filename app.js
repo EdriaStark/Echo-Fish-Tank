@@ -26,6 +26,9 @@ const statusCard = $('#statusCard');
 const exportButton = $('#exportButton');
 const scanButton = $('#scanButton');
 const clearButton = $('#clearButton');
+const backupButton = $('#backupButton');
+const restoreButton = $('#restoreButton');
+const restoreInput = $('#restoreInput');
 const reportSection = $('#reportSection');
 const reportGrid = $('#reportGrid');
 const analysisDetailGrid = $('#analysisDetailGrid');
@@ -254,6 +257,7 @@ function render() {
   statusCard.classList.toggle('ready', ready);
   statusCard.innerHTML = `<span class="status-dot"></span><p><b>${ready ? '可以分析' : '继续导入'}</b><br />${ready ? '文章数量已足够。' : `还差 ${requiredCount - count} 篇。`}</p>`;
   clearButton.disabled = !count;
+  backupButton.disabled = !count;
   emptyState.hidden = Boolean(count);
   articleList.innerHTML = articles.map((article, index) => `<li><span class="article-index">${String(index + 1).padStart(2, '0')}</span><span class="article-title" title="${escapeHtml(article.title)}">${escapeHtml(article.title)}</span><span class="article-meta">${formatNumber(article.characters)} 字 · ${article.type}</span><button class="remove-button" type="button" data-id="${article.id}" aria-label="移除 ${escapeHtml(article.title)}">×</button></li>`).join('');
 }
@@ -359,6 +363,32 @@ function download(content, type, name) {
   link.click(); URL.revokeObjectURL(url);
 }
 function downloadReport() { if (!reportMarkdown) buildReport(); download(reportMarkdown, 'text/markdown;charset=utf-8', 'writing-dna-pre-scan.md'); }
+function downloadWorkspaceBackup() {
+  const backup = {
+    format: 'writing-dna-workspace', version: 1, exportedAt: new Date().toISOString(),
+    author: authorInput.value, corpusName: corpusInput.value,
+    articles: articles.map(({ name, text }) => ({ name, text }))
+  };
+  download(JSON.stringify(backup, null, 2), 'application/json;charset=utf-8', 'writing-dna-workspace.json');
+}
+function restoreWorkspace(file) {
+  if (!file) return;
+  file.text().then(text => {
+    const backup = JSON.parse(text);
+    if (backup?.format !== 'writing-dna-workspace' || backup.version !== 1 || !Array.isArray(backup.articles)) throw new Error('invalid backup');
+    const restored = backup.articles
+      .filter(article => typeof article?.name === 'string' && typeof article?.text === 'string' && article.text.trim())
+      .map(article => articleFromText(article.name, article.text));
+    if (!restored.length) throw new Error('empty backup');
+    if (!window.confirm(`恢复 ${restored.length} 篇文章将替换当前工作台。是否继续？`)) return;
+    articles.splice(0, articles.length, ...restored);
+    authorInput.value = typeof backup.author === 'string' ? backup.author : '';
+    corpusInput.value = typeof backup.corpusName === 'string' ? backup.corpusName : '';
+    isDemoMode = false;
+    importFeedback.textContent = `已恢复 ${restored.length} 篇文章。`;
+    scheduleSave(); render(); buildReport(); setOnboardingStage('preview');
+  }).catch(() => { importFeedback.textContent = '无法读取备份。请选择此工作台导出的 JSON 文件。'; });
+}
 async function copyAiPrompt(button, restoreLabel = true) {
   try {
     await navigator.clipboard.writeText(aiPromptText);
@@ -382,6 +412,9 @@ emptyUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); 
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
 articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); scheduleSave(); render(); } });
 clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; reportSection.hidden = true; scheduleSave(); render(); setOnboardingStage('welcome'); });
+backupButton.addEventListener('click', downloadWorkspaceBackup);
+restoreButton.addEventListener('click', () => restoreInput.click());
+restoreInput.addEventListener('change', event => { restoreWorkspace(event.target.files[0]); event.target.value = ''; });
 scanButton.addEventListener('click', async () => {
   if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
     setOnboardingStage('drag');
