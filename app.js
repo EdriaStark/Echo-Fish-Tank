@@ -7,6 +7,7 @@ let aiPromptText = '';
 let saveTimer;
 let isDemoMode = false;
 let onboardingStage = 'welcome';
+let uploadSuccessTimer;
 
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $('#fileInput');
@@ -35,6 +36,8 @@ const onboardingEyebrow = $('#onboardingEyebrow');
 const onboardingTitle = $('#onboardingTitle');
 const onboardingDescription = $('#onboardingDescription');
 const onboardingSteps = $('#onboardingSteps');
+const onboardingSection = $('#onboardingSection');
+const onboardingSkeleton = $('#onboardingSkeleton');
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -61,6 +64,8 @@ function setOnboardingStage(stage) {
   scanButton.disabled = stage === 'analyzing';
   scanButton.innerHTML = `${content.primary}${stage === 'welcome' || stage === 'drag' ? ' <span>→</span>' : ''}`;
   exportButton.hidden = !content.secondary;
+  onboardingSkeleton.hidden = stage !== 'analyzing';
+  onboardingSection.setAttribute('aria-busy', String(stage === 'analyzing'));
   exportButton.textContent = content.secondary;
   [...onboardingSteps.querySelectorAll('li')].forEach((item, index) => {
     const itemStage = item.dataset.stage;
@@ -69,6 +74,29 @@ function setOnboardingStage(stage) {
     item.classList.toggle('complete', index < activeIndex);
     item.classList.toggle('processing', itemStage === 'analyzing' && stage === 'analyzing');
   });
+}
+
+function animateNumber(element, target) {
+  const previous = Number(element.dataset.value || 0);
+  const start = Number.isFinite(previous) ? previous : 0;
+  const duration = Math.min(700, 260 + Math.abs(target - start) * 8);
+  const began = performance.now();
+  const update = now => {
+    const progress = Math.min(1, (now - began) / duration);
+    const eased = 1 - Math.pow(1 - progress, 4);
+    element.textContent = formatNumber(Math.round(start + (target - start) * eased));
+    if (progress < 1) requestAnimationFrame(update);
+    else element.dataset.value = String(target);
+  };
+  requestAnimationFrame(update);
+}
+
+function playUploadSuccess() {
+  clearTimeout(uploadSuccessTimer);
+  dropzone.classList.remove('upload-success');
+  void dropzone.offsetWidth;
+  dropzone.classList.add('upload-success');
+  uploadSuccessTimer = window.setTimeout(() => dropzone.classList.remove('upload-success'), 1150);
 }
 
 function openDatabase() {
@@ -168,6 +196,7 @@ async function addFiles(fileList) {
     setOnboardingStage('welcome');
     return;
   }
+  playUploadSuccess();
   await new Promise(resolve => window.setTimeout(resolve, 520));
   buildReport();
   setOnboardingStage('preview');
@@ -182,9 +211,9 @@ function render() {
   }
   const total = articles.reduce((sum, article) => sum + article.characters, 0);
   const ready = count >= requiredCount;
-  $('#articleCount').textContent = count;
-  $('#wordCount').textContent = formatNumber(total);
-  $('#averageCount').textContent = count ? formatNumber(Math.round(total / count)) : '0';
+  animateNumber($('#articleCount'), count);
+  animateNumber($('#wordCount'), total);
+  animateNumber($('#averageCount'), count ? Math.round(total / count) : 0);
   progressLabel.textContent = `${count} / ${requiredCount} 篇`;
   progressBar.style.width = `${Math.min(100, (count / requiredCount) * 100)}%`;
   progressMessage.textContent = ready ? '语料已满足建议数量。可以导出并开始写作 DNA 分析。' : `还差 ${requiredCount - count} 篇完整文章；建议内容来自同一作者或账号。`;
