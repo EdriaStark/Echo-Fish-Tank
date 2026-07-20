@@ -48,12 +48,12 @@ function setTheme(theme) {
 }
 
 const onboardingContent = {
-  welcome: { eyebrow: '开始', title: '从文章开始', description: '导入文章。其余交给系统。', primary: '导入文章', secondary: '查看示例' },
-  drag: { eyebrow: '导入', title: '拖入文章', description: '支持 Markdown、文本和 ZIP。', primary: '选择文件', secondary: '查看示例' },
-  analyzing: { eyebrow: '分析中', title: '正在读取文章', description: '正在整理语言和结构。', primary: '正在分析', secondary: '' },
-  preview: { eyebrow: '预览', title: '先看写作画像', description: '确认重点。再生成 DNA。', primary: '生成 DNA', secondary: '添加文章' },
-  dna: { eyebrow: 'Writing DNA', title: '你的规则已准备好', description: '展开完整画像。复制提示词。', primary: '复制提示词', secondary: '下载报告' },
-  export: { eyebrow: '完成', title: '提示词已复制', description: '粘贴给 AI，继续写作。', primary: '导入更多', secondary: '下载报告' }
+  welcome: { eyebrow: '准备好时开始', title: '上传文章', description: '我们会在本地整理它们。', primary: '导入文章', secondary: '查看示例' },
+  drag: { eyebrow: '导入', title: '选择文章', description: '支持 Markdown、文本和 ZIP。', primary: '选择文件', secondary: '查看示例' },
+  analyzing: { eyebrow: '处理中', title: '正在整理文章', description: '很快就好。', primary: '正在整理', secondary: '' },
+  preview: { eyebrow: '已完成', title: '你的写作画像', description: '结果已准备好。', primary: '复制提示词', secondary: '添加文章' },
+  dna: { eyebrow: '已完成', title: '你的写作画像', description: '结果已准备好。', primary: '复制提示词', secondary: '下载报告' },
+  export: { eyebrow: '已复制', title: '提示词已准备好', description: '粘贴给 AI，继续工作。', primary: '导入更多', secondary: '下载报告' }
 };
 
 function setOnboardingStage(stage) {
@@ -68,7 +68,7 @@ function setOnboardingStage(stage) {
   onboardingSkeleton.hidden = stage !== 'analyzing';
   onboardingSection.setAttribute('aria-busy', String(stage === 'analyzing'));
   exportButton.textContent = content.secondary;
-  [...onboardingSteps.querySelectorAll('li')].forEach((item, index) => {
+  if (onboardingSteps) [...onboardingSteps.querySelectorAll('li')].forEach((item, index) => {
     const itemStage = item.dataset.stage;
     const activeIndex = Object.keys(onboardingContent).indexOf(stage);
     item.classList.toggle('active', itemStage === stage);
@@ -193,7 +193,6 @@ async function addFiles(fileList) {
   }
   render();
   if (!articles.length) {
-    showDemoReport(true);
     setOnboardingStage('welcome');
     return;
   }
@@ -352,14 +351,14 @@ emptyUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); 
 ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
 articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); render(); } });
-clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; render(); showDemoReport(); setOnboardingStage('welcome'); });
+clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; reportSection.hidden = true; render(); setOnboardingStage('welcome'); });
 scanButton.addEventListener('click', async () => {
   if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
     setOnboardingStage('drag');
     fileInput.click();
   } else if (onboardingStage === 'preview') {
-    buildReport(articles, false, true);
-    setOnboardingStage('dna');
+    await copyAiPrompt(scanButton, false);
+    setOnboardingStage('export');
   } else if (onboardingStage === 'dna') {
     await copyAiPrompt(scanButton, false);
     setOnboardingStage('export');
@@ -404,7 +403,7 @@ async function start() {
     }
   } catch (error) { console.warn('Unable to restore workspace locally.', error); }
   render();
-  if (!articles.length) showDemoReport();
+  if (articles.length) buildReport(articles, false, false, false);
   setOnboardingStage(articles.length ? 'preview' : 'welcome');
 }
 
