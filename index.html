@@ -14,12 +14,12 @@
 
       <section class="hero" id="top">
         <div class="hero-copy-block">
-          <p class="eyebrow">写作 DNA</p>
-          <h1>读懂你的文字<br /><span>写得更像自己</span></h1>
-          <p class="hero-copy">导入文章。得到清晰的写作规则。</p>
+          <p class="eyebrow">Writing DNA</p>
+          <h1>看见你的<br /><span>写作规律</span></h1>
+          <p class="hero-copy">上传文章。系统会整理你的表达方式。</p>
           <div class="hero-actions">
             <button class="primary-button hero-primary" id="heroUploadButton" type="button">导入文章 <span>→</span></button>
-            <a class="secondary-link" href="#how-it-works">了解流程</a>
+            <a class="secondary-link" href="#onboardingSection">查看示例</a>
           </div>
           <p class="hero-reassurance">文章只在此浏览器处理。</p>
         </div>
@@ -28,18 +28,20 @@
 
       <div id="progressCardMount"></div>
 
-      <section class="workspace-grid">
-        <div class="upload-panel">
-          <div class="section-heading"><p class="eyebrow">语料信息</p><h2>标记这批文章</h2><p>这些信息会写入导出文件。</p></div>
-          <div class="field-row">
-            <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
-            <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
+      <details class="workspace-details">
+        <summary>文章信息</summary>
+        <section class="workspace-grid">
+          <div class="upload-panel">
+            <div class="section-heading"><p class="eyebrow">可选</p><h2>添加上下文</h2><p>这些信息会写入导出文件。</p></div>
+            <div class="field-row">
+              <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
+              <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
+            </div>
+            <div class="storage-note"><strong>已在本地保存</strong><p>文章只留在此浏览器。</p></div>
           </div>
-          <div class="storage-note"><strong>已在本地保存</strong><p>文章只留在此浏览器。</p></div>
-        </div>
-
-        <div id="statsCardMount"></div>
-      </section>
+          <div id="statsCardMount"></div>
+        </section>
+      </details>
 
       <section class="articles-section">
         <div class="articles-head">
@@ -52,18 +54,10 @@
 
       <section class="action-section onboarding-section" id="onboardingSection" aria-label="开始流程">
         <div class="onboarding-copy">
-          <p class="eyebrow" id="onboardingEyebrow">开始</p>
-          <h2 id="onboardingTitle">从文章开始</h2>
-          <p id="onboardingDescription">导入文章。其余交给系统。</p>
+          <p class="eyebrow" id="onboardingEyebrow">准备好时开始</p>
+          <h2 id="onboardingTitle">上传文章</h2>
+          <p id="onboardingDescription">我们会在本地整理它们。</p>
         </div>
-        <ol class="onboarding-steps" id="onboardingSteps">
-          <li data-stage="welcome"><span>欢迎</span></li>
-          <li data-stage="drag"><span>导入</span></li>
-          <li data-stage="analyzing"><span>分析中</span></li>
-          <li data-stage="preview"><span>预览</span></li>
-          <li data-stage="dna"><span>生成 DNA</span></li>
-          <li data-stage="export"><span>导出提示词</span></li>
-        </ol>
         <div class="action-buttons onboarding-actions">
           <button class="primary-button" id="scanButton" type="button">导入文章 <span>→</span></button>
           <button class="secondary-button" id="exportButton" type="button">查看示例</button>
@@ -93,15 +87,6 @@
         <p class="report-disclaimer">结果仅基于本地文章统计。</p>
       </section>
 
-      <section class="how-section" id="how-it-works">
-        <p class="eyebrow">流程</p>
-        <h2>从文章到写作规则</h2>
-        <ol>
-          <li><b>导入</b><p>加入同一作者的文章。</p></li>
-          <li><b>查看</b><p>确认语言和结构。</p></li>
-          <li><b>继续</b><p>导出提示词，交给 AI。</p></li>
-        </ol>
-      </section>
     </main>
     <div id="footerMount"></div>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
