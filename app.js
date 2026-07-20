@@ -22,6 +22,8 @@ const reportGrid = $('#reportGrid');
 const themeToggle = $('#themeToggle');
 const authorInput = $('#authorInput');
 const corpusInput = $('#corpusInput');
+const heroUploadButton = $('#heroUploadButton');
+const emptyUploadButton = $('#emptyUploadButton');
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -168,6 +170,8 @@ function downloadPackage() {
 function downloadReport() { if (!reportMarkdown) buildReport(); download(reportMarkdown, 'text/markdown;charset=utf-8', 'writing-dna-pre-scan.md'); }
 
 fileInput.addEventListener('change', event => { addFiles(event.target.files); event.target.value = ''; });
+heroUploadButton.addEventListener('click', () => fileInput.click());
+emptyUploadButton.addEventListener('click', () => fileInput.click());
 ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('dragging'); }));
 ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
