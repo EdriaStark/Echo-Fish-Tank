@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="一个在浏览器本地整理文章语料、准备写作风格蒸馏的工作台。" />
+    <meta name="description" content="从文章中提炼你的写作规则。" />
     <meta name="color-scheme" content="light dark" />
     <title>写作 DNA · 工作台</title>
     <link rel="stylesheet" href="styles.css" />
@@ -14,14 +14,14 @@
 
       <section class="hero" id="top">
         <div class="hero-copy-block">
-          <p class="eyebrow">写作 DNA 工作台</p>
-          <h1>把一组文章<br />变成<span>可复用的写作方法</span></h1>
-          <p class="hero-copy">为内容创作者、研究者和内容团队准备。导入你的文章，提炼可持续使用的语言、结构与判断方式。</p>
+          <p class="eyebrow">写作 DNA</p>
+          <h1>读懂你的文字<br /><span>写得更像自己</span></h1>
+          <p class="hero-copy">导入文章。得到清晰的写作规则。</p>
           <div class="hero-actions">
             <button class="primary-button hero-primary" id="heroUploadButton" type="button">导入文章 <span>→</span></button>
-            <a class="secondary-link" href="#how-it-works">查看工作方式</a>
+            <a class="secondary-link" href="#how-it-works">了解流程</a>
           </div>
-          <p class="hero-reassurance">文章只在当前浏览器中解压与保存。</p>
+          <p class="hero-reassurance">文章只在此浏览器处理。</p>
         </div>
         <div id="uploadAreaMount"></div>
       </section>
@@ -30,12 +30,12 @@
 
       <section class="workspace-grid">
         <div class="upload-panel">
-          <div class="section-heading"><p class="eyebrow">语料信息</p><h2>给这批文章一个上下文</h2><p>这些信息会写入导出的分析包，帮助后续分析理解语料来源。</p></div>
+          <div class="section-heading"><p class="eyebrow">语料信息</p><h2>标记这批文章</h2><p>这些信息会写入导出文件。</p></div>
           <div class="field-row">
             <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
             <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
           </div>
-          <div class="storage-note"><strong>自动保存已开启</strong><p>关闭或刷新页面后，文章仍会保留在此浏览器中。</p></div>
+          <div class="storage-note"><strong>已在本地保存</strong><p>文章只留在此浏览器。</p></div>
         </div>
 
         <div id="statsCardMount"></div>
@@ -43,18 +43,18 @@
 
       <section class="articles-section">
         <div class="articles-head">
-          <div><p class="eyebrow">已导入内容</p><h2>已导入的语料</h2></div>
-          <button class="text-button" id="clearButton" type="button" disabled>清空全部</button>
+          <div><p class="eyebrow">文章</p><h2>你的语料</h2></div>
+          <button class="text-button" id="clearButton" type="button" disabled>清空</button>
         </div>
-        <div class="empty-state" id="emptyState"><div class="empty-mark" aria-hidden="true">0</div><h3>从第一篇文章开始</h3><p>导入 Markdown、文本文件或一个 ZIP，文章会保存在你的浏览器中。</p><button class="secondary-button empty-upload" id="emptyUploadButton" type="button">导入文章</button></div>
+        <div class="empty-state" id="emptyState"><div class="empty-mark" aria-hidden="true">0</div><h3>从一篇开始</h3><p>导入文章或 ZIP。数据留在本地。</p><button class="secondary-button empty-upload" id="emptyUploadButton" type="button">导入文章</button></div>
         <ul class="article-list" id="articleList" aria-live="polite"></ul>
       </section>
 
       <section class="action-section onboarding-section" id="onboardingSection" aria-label="开始流程">
         <div class="onboarding-copy">
-          <p class="eyebrow" id="onboardingEyebrow">开始使用</p>
-          <h2 id="onboardingTitle">欢迎来到你的写作 DNA 工作台</h2>
-          <p id="onboardingDescription">先导入几篇完整文章。系统会在浏览器中整理语料，并带你走完从预览到 AI 提示词的过程。</p>
+          <p class="eyebrow" id="onboardingEyebrow">开始</p>
+          <h2 id="onboardingTitle">从文章开始</h2>
+          <p id="onboardingDescription">导入文章。其余交给系统。</p>
         </div>
         <ol class="onboarding-steps" id="onboardingSteps">
           <li data-stage="welcome"><span>欢迎</span></li>
@@ -66,7 +66,7 @@
         </ol>
         <div class="action-buttons onboarding-actions">
           <button class="primary-button" id="scanButton" type="button">导入文章 <span>→</span></button>
-          <button class="secondary-button" id="exportButton" type="button">查看示例报告</button>
+          <button class="secondary-button" id="exportButton" type="button">查看示例</button>
         </div>
         <div class="onboarding-skeleton" id="onboardingSkeleton" hidden aria-live="polite" aria-label="正在生成分析预览">
           <span class="skeleton-line skeleton-title"></span>
@@ -77,29 +77,29 @@
 
       <section class="report-section" id="reportSection" hidden>
         <div class="report-head">
-          <div><p class="eyebrow">分析结果</p><h2>你的 Writing DNA</h2></div>
-          <button class="text-button" id="downloadReportButton" type="button">下载分析报告</button>
+          <div><p class="eyebrow">结果</p><h2>你的 Writing DNA</h2></div>
+          <button class="text-button" id="downloadReportButton" type="button">下载报告</button>
         </div>
         <div class="demo-mode-banner" id="demoModeBanner" hidden>
-          <div><b>示例模式</b><p>这是虚构语料生成的演示报告，用来帮助你理解上传后的结果。</p></div>
+          <div><b>示例</b><p>这是虚构文章的结果。</p></div>
           <button class="secondary-button demo-upload" id="demoUploadButton" type="button">导入我的文章</button>
         </div>
-        <p class="report-intro">先从写作画像开始。其余观察按需展开，避免让数字淹没结论。</p>
+        <p class="report-intro">先看重点。需要时再展开。</p>
         <div class="report-grid" id="reportGrid"></div>
         <details class="analysis-details" id="analysisDetails">
-          <summary><span><b>展开完整语言画像</b><small>词汇、节奏、情绪、结构与 AI 提示词</small></span><span class="details-control" aria-hidden="true">+</span></summary>
+          <summary><span><b>查看完整画像</b><small>词汇、节奏、结构和提示词</small></span><span class="details-control" aria-hidden="true">+</span></summary>
           <div class="analysis-detail-grid" id="analysisDetailGrid"></div>
         </details>
-        <p class="report-disclaimer">这些结果由浏览器在本地根据你的文章统计生成，用于发现线索。完整的风格判断仍应结合全文与选题语境。</p>
+        <p class="report-disclaimer">结果仅基于本地文章统计。</p>
       </section>
 
       <section class="how-section" id="how-it-works">
-        <p class="eyebrow">工作方式</p>
-        <h2>从文章库到写作 DNA</h2>
+        <p class="eyebrow">流程</p>
+        <h2>从文章到写作规则</h2>
         <ol>
-          <li><b>收集语料</b><p>放入同一作者或账号的完整文章。</p></li>
-          <li><b>确认规律</b><p>用本地预分析检查长度、节奏和标题样本。</p></li>
-          <li><b>提炼风格</b><p>导出交接包，生成可复用的 Writing DNA。</p></li>
+          <li><b>导入</b><p>加入同一作者的文章。</p></li>
+          <li><b>查看</b><p>确认语言和结构。</p></li>
+          <li><b>继续</b><p>导出提示词，交给 AI。</p></li>
         </ol>
       </section>
     </main>
