@@ -52,6 +52,7 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 .workspace-details { display: block; margin: 18px 0 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .workspace-details > summary { padding: 14px 16px; cursor: pointer; color: var(--text); font-size: 13px; font-weight: 650; }
 .workspace-details[open] > summary { border-bottom: 1px solid var(--line); }
+.workspace-actions { display: flex; align-items: center; gap: 2px; }
 .workspace-grid { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
 .upload-panel { padding: 0; }
 .insight-panel { min-height: 0; }
