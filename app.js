@@ -1,5 +1,9 @@
 const requiredCount = 20;
 const articles = [];
+const databaseName = 'writing-dna-workbench';
+const storeName = 'workspace';
+let reportMarkdown = '';
+let saveTimer;
 
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $('#fileInput');
@@ -16,7 +20,8 @@ const clearButton = $('#clearButton');
 const reportSection = $('#reportSection');
 const reportGrid = $('#reportGrid');
 const themeToggle = $('#themeToggle');
-let reportMarkdown = '';
+const authorInput = $('#authorInput');
+const corpusInput = $('#corpusInput');
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -25,23 +30,81 @@ function setTheme(theme) {
   themeToggle.setAttribute('aria-label', theme === 'dark' ? '切换浅色模式' : '切换深色模式');
 }
 
-const savedTheme = localStorage.getItem('writing-dna-theme');
-setTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(databaseName, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function readSavedWorkspace() {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const request = database.transaction(storeName, 'readonly').objectStore(storeName).get('current');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const database = await openDatabase();
+      const transaction = database.transaction(storeName, 'readwrite');
+      transaction.objectStore(storeName).put({
+        articles,
+        author: authorInput.value,
+        corpusName: corpusInput.value,
+        savedAt: new Date().toISOString()
+      }, 'current');
+    } catch (error) {
+      console.warn('Unable to save workspace locally.', error);
+    }
+  }, 250);
+}
 
 function formatNumber(number) { return new Intl.NumberFormat('zh-CN').format(number); }
 function countCharacters(text) { return text.replace(/\s/g, '').length; }
+function createId() { return crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`; }
 function titleFrom(content, fallback) {
   const line = content.split(/\r?\n/).map(line => line.trim()).find(line => line && !/^---$/.test(line));
   return (line || fallback).replace(/^#{1,6}\s*/, '').slice(0, 80);
 }
+function isArticleFile(name) { return /\.(md|txt)$/i.test(name); }
+
+function articleFromText(name, text) {
+  return {
+    id: createId(), name, type: name.split('.').pop().toUpperCase(), text,
+    title: titleFrom(text, name.replace(/\.(md|txt)$/i, '')), characters: countCharacters(text)
+  };
+}
+
+async function unpackZip(file) {
+  if (!window.JSZip) throw new Error('ZIP reader unavailable');
+  if (file.size > 50 * 1024 * 1024) throw new Error('ZIP is too large');
+  const zip = await window.JSZip.loadAsync(file);
+  const entries = Object.values(zip.files).filter(entry => !entry.dir && isArticleFile(entry.name));
+  const results = await Promise.all(entries.map(async entry => articleFromText(entry.name, await entry.async('string'))));
+  return results;
+}
 
 async function addFiles(fileList) {
-  const supported = [...fileList].filter(file => /\.(md|txt)$/i.test(file.name));
-  const incoming = await Promise.all(supported.map(async (file) => {
-    const text = await file.text();
-    return { id: `${file.name}-${file.lastModified}-${Math.random()}`, name: file.name, type: file.name.split('.').pop().toUpperCase(), text, title: titleFrom(text, file.name.replace(/\.(md|txt)$/i, '')), characters: countCharacters(text) };
-  }));
-  articles.push(...incoming);
+  const files = [...fileList];
+  const directFiles = files.filter(file => isArticleFile(file.name));
+  const zipFiles = files.filter(file => /\.zip$/i.test(file.name));
+  const directArticles = await Promise.all(directFiles.map(async file => articleFromText(file.name, await file.text())));
+  try {
+    const packedArticles = (await Promise.all(zipFiles.map(unpackZip))).flat();
+    articles.push(...directArticles, ...packedArticles);
+    if (zipFiles.length && !packedArticles.length) alert('ZIP 中没有找到 .md 或 .txt 文章。');
+  } catch (error) {
+    console.warn(error);
+    articles.push(...directArticles);
+    alert('有一个 ZIP 无法读取。请确认它未加密，并且其中包含 .md 或 .txt 文件。');
+  }
   render();
 }
 
@@ -62,6 +125,7 @@ function render() {
   clearButton.disabled = !count;
   emptyState.hidden = Boolean(count);
   articleList.innerHTML = articles.map((article, index) => `<li><span class="article-index">${String(index + 1).padStart(2, '0')}</span><span class="article-title" title="${escapeHtml(article.title)}">${escapeHtml(article.title)}</span><span class="article-meta">${formatNumber(article.characters)} 字 · ${article.type}</span><button class="remove-button" type="button" data-id="${article.id}" aria-label="移除 ${escapeHtml(article.title)}">×</button></li>`).join('');
+  scheduleSave();
 }
 
 function average(values) { return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0; }
@@ -82,31 +146,26 @@ function buildReport() {
   ];
   reportGrid.innerHTML = report.map(item => `<article class="report-card"><h3>${item.title}</h3><p>${item.body}</p></article>`).join('');
   reportSection.hidden = false;
-  reportMarkdown = `# 写作 DNA · 语料预分析\n\n- 语料名称：${$('#corpusInput').value.trim() || '未命名写作语料'}\n- 作者 / 账号：${$('#authorInput').value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n${report.map(item => `## ${item.title}\n\n${item.body.replace(/<[^>]+>/g, '')}`).join('\n\n')}\n\n> 本报告是浏览器内生成的基础统计与观察，不等同于完整写作 DNA。\n`;
+  reportMarkdown = `# 写作 DNA · 语料预分析\n\n- 语料名称：${corpusInput.value.trim() || '未命名写作语料'}\n- 作者 / 账号：${authorInput.value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n${report.map(item => `## ${item.title}\n\n${item.body.replace(/<[^>]+>/g, '')}`).join('\n\n')}\n\n> 本报告是浏览器内生成的基础统计与观察，不等同于完整写作 DNA。\n`;
   reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function escapeHtml(value) { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
+function download(content, type, name) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = Object.assign(document.createElement('a'), { href: url, download: name });
+  link.click(); URL.revokeObjectURL(url);
+}
 function downloadPackage() {
-  const payload = {
-    schema: 'writing-dna-corpus/v1',
-    exportedAt: new Date().toISOString(),
-    corpusName: $('#corpusInput').value.trim() || '未命名写作语料',
-    author: $('#authorInput').value.trim() || '未填写',
+  download(JSON.stringify({
+    schema: 'writing-dna-corpus/v1', exportedAt: new Date().toISOString(),
+    corpusName: corpusInput.value.trim() || '未命名写作语料', author: authorInput.value.trim() || '未填写',
     instructions: '请使用 writing-dna-skill 分析本语料。语料少于 20 篇时，请将结果明确标记为演示性分析。',
     summary: { articleCount: articles.length, characterCount: articles.reduce((sum, article) => sum + article.characters, 0) },
     articles: articles.map(({ id, ...article }) => article)
-  };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' }));
-  const link = Object.assign(document.createElement('a'), { href: url, download: 'writing-dna-corpus.json' });
-  link.click(); URL.revokeObjectURL(url);
+  }, null, 2), 'application/json;charset=utf-8', 'writing-dna-corpus.json');
 }
-function downloadReport() {
-  if (!reportMarkdown) buildReport();
-  const url = URL.createObjectURL(new Blob([reportMarkdown], { type: 'text/markdown;charset=utf-8' }));
-  const link = Object.assign(document.createElement('a'), { href: url, download: 'writing-dna-pre-scan.md' });
-  link.click(); URL.revokeObjectURL(url);
-}
+function downloadReport() { if (!reportMarkdown) buildReport(); download(reportMarkdown, 'text/markdown;charset=utf-8', 'writing-dna-pre-scan.md'); }
 
 fileInput.addEventListener('change', event => { addFiles(event.target.files); event.target.value = ''; });
 ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('dragging'); }));
@@ -122,4 +181,20 @@ themeToggle.addEventListener('click', () => {
   localStorage.setItem('writing-dna-theme', nextTheme);
   setTheme(nextTheme);
 });
-render();
+[authorInput, corpusInput].forEach(input => input.addEventListener('input', scheduleSave));
+
+async function start() {
+  const savedTheme = localStorage.getItem('writing-dna-theme');
+  setTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  try {
+    const saved = await readSavedWorkspace();
+    if (saved) {
+      articles.push(...(saved.articles || []));
+      authorInput.value = saved.author || '';
+      corpusInput.value = saved.corpusName || '';
+    }
+  } catch (error) { console.warn('Unable to restore workspace locally.', error); }
+  render();
+}
+
+start();
