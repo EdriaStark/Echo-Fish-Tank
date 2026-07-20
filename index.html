@@ -52,7 +52,12 @@
       <section class="articles-section">
         <div class="articles-head">
           <div><p class="eyebrow">文章</p><h2>你的语料</h2></div>
-          <button class="text-button" id="clearButton" type="button" disabled>清空</button>
+          <div class="workspace-actions">
+            <button class="text-button" id="backupButton" type="button" disabled>备份</button>
+            <button class="text-button" id="restoreButton" type="button">恢复</button>
+            <button class="text-button" id="clearButton" type="button" disabled>清空</button>
+            <input id="restoreInput" type="file" accept="application/json,.json" hidden />
+          </div>
         </div>
         <div class="empty-state" id="emptyState"><div class="empty-mark" aria-hidden="true">0</div><h3>从一篇开始</h3><p>导入文章或 ZIP。数据留在本地。</p><button class="secondary-button empty-upload" id="emptyUploadButton" type="button">导入文章</button></div>
         <ul class="article-list" id="articleList" aria-live="polite"></ul>
