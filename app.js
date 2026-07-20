@@ -6,6 +6,7 @@ let reportMarkdown = '';
 let aiPromptText = '';
 let saveTimer;
 let isDemoMode = false;
+let onboardingStage = 'welcome';
 
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $('#fileInput');
@@ -30,12 +31,44 @@ const corpusInput = $('#corpusInput');
 const heroUploadButton = $('#heroUploadButton');
 const emptyUploadButton = $('#emptyUploadButton');
 const demoUploadButton = $('#demoUploadButton');
+const onboardingEyebrow = $('#onboardingEyebrow');
+const onboardingTitle = $('#onboardingTitle');
+const onboardingDescription = $('#onboardingDescription');
+const onboardingSteps = $('#onboardingSteps');
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
   themeToggle.querySelector('.theme-label').textContent = theme === 'dark' ? '浅色' : '深色';
   themeToggle.setAttribute('aria-label', theme === 'dark' ? '切换浅色模式' : '切换深色模式');
+}
+
+const onboardingContent = {
+  welcome: { eyebrow: '开始使用', title: '欢迎来到你的写作 DNA 工作台', description: '先导入几篇完整文章。系统会在浏览器中整理语料，并带你走完从预览到 AI 提示词的过程。', primary: '导入文章', secondary: '查看示例报告' },
+  drag: { eyebrow: '导入语料', title: '拖入你的文章', description: '支持 Markdown、文本文件或 ZIP。内容只在当前浏览器中处理与保存。', primary: '选择文件', secondary: '查看示例报告' },
+  analyzing: { eyebrow: '正在分析', title: '正在整理这批文章', description: '正在读取篇幅、段落、句子节奏和词汇线索。很快就能看到第一版画像。', primary: '正在分析', secondary: '' },
+  preview: { eyebrow: '结果预览', title: '先确认你的写作画像', description: '先看摘要与关键判断。确认方向后，再展开完整语言画像并生成可复用的 Writing DNA。', primary: '生成 Writing DNA', secondary: '添加文章' },
+  dna: { eyebrow: 'Writing DNA', title: '你的写作 DNA 已准备好', description: '完整画像已展开。下一步将分析要点整理成可直接交给 AI 的提示词。', primary: '复制 AI 提示词', secondary: '下载分析报告' },
+  export: { eyebrow: '已准备好', title: '提示词已复制', description: '把它粘贴到支持 Writing DNA 的 AI 对话中，即可继续生成风格指南与写作模板。', primary: '导入更多文章', secondary: '下载分析报告' }
+};
+
+function setOnboardingStage(stage) {
+  onboardingStage = stage;
+  const content = onboardingContent[stage];
+  onboardingEyebrow.textContent = content.eyebrow;
+  onboardingTitle.textContent = content.title;
+  onboardingDescription.textContent = content.description;
+  scanButton.disabled = stage === 'analyzing';
+  scanButton.innerHTML = `${content.primary}${stage === 'welcome' || stage === 'drag' ? ' <span>→</span>' : ''}`;
+  exportButton.hidden = !content.secondary;
+  exportButton.textContent = content.secondary;
+  [...onboardingSteps.querySelectorAll('li')].forEach((item, index) => {
+    const itemStage = item.dataset.stage;
+    const activeIndex = Object.keys(onboardingContent).indexOf(stage);
+    item.classList.toggle('active', itemStage === stage);
+    item.classList.toggle('complete', index < activeIndex);
+    item.classList.toggle('processing', itemStage === 'analyzing' && stage === 'analyzing');
+  });
 }
 
 function openDatabase() {
@@ -110,6 +143,8 @@ async function unpackZip(file) {
 
 async function addFiles(fileList) {
   const files = [...fileList];
+  if (!files.length) return;
+  setOnboardingStage('analyzing');
   const directFiles = files.filter(file => isArticleFile(file.name));
   const zipFiles = files.filter(file => /\.zip$/i.test(file.name));
   const directArticles = await Promise.all(directFiles.map(async file => articleFromText(file.name, await file.text())));
@@ -128,6 +163,14 @@ async function addFiles(fileList) {
     reportMarkdown = '';
   }
   render();
+  if (!articles.length) {
+    showDemoReport(true);
+    setOnboardingStage('welcome');
+    return;
+  }
+  await new Promise(resolve => window.setTimeout(resolve, 520));
+  buildReport();
+  setOnboardingStage('preview');
 }
 
 function render() {
@@ -147,8 +190,6 @@ function render() {
   progressMessage.textContent = ready ? '语料已满足建议数量。可以导出并开始写作 DNA 分析。' : `还差 ${requiredCount - count} 篇完整文章；建议内容来自同一作者或账号。`;
   statusCard.classList.toggle('ready', ready);
   statusCard.innerHTML = `<span class="status-dot"></span><p><b>${ready ? '可以开始分析' : '尚未就绪'}</b><br />${ready ? '已达到建议的 20 篇语料' : `还需导入 ${requiredCount - count} 篇完整文章`}</p>`;
-  exportButton.disabled = !count;
-  scanButton.disabled = !count;
   clearButton.disabled = !count;
   emptyState.hidden = Boolean(count);
   articleList.innerHTML = articles.map((article, index) => `<li><span class="article-index">${String(index + 1).padStart(2, '0')}</span><span class="article-title" title="${escapeHtml(article.title)}">${escapeHtml(article.title)}</span><span class="article-meta">${formatNumber(article.characters)} 字 · ${article.type}</span><button class="remove-button" type="button" data-id="${article.id}" aria-label="移除 ${escapeHtml(article.title)}">×</button></li>`).join('');
@@ -177,7 +218,7 @@ function barRows(items, suffix = '') {
   const maximum = Math.max(...items.map(([, value]) => value), 1);
   return items.map(([label, value]) => `<div class="bar-row"><span>${escapeHtml(label)}</span><i><b style="width:${Math.max(8, Math.round((value / maximum) * 100))}%"></b></i><strong>${value}${suffix}</strong></div>`).join('');
 }
-function buildReport(source = articles, demo = false) {
+function buildReport(source = articles, demo = false, expanded = demo, shouldScroll = true) {
   const joined = source.map(article => article.text).join('\n');
   const paragraphLengths = joined.split(/\n\s*\n/).map(countCharacters).filter(Boolean);
   const sentenceTexts = splitSentences(joined);
@@ -233,16 +274,16 @@ function buildReport(source = articles, demo = false) {
     <article class="analysis-card sample-card"><span class="card-label">常见结尾</span><h3>文章如何收束</h3><ol>${endingSamples.map(sample => `<li>${escapeHtml(sample || '尚无结尾样本')}</li>`).join('')}</ol></article>
     <article class="analysis-card structure-card"><span class="card-label">结构模式</span><h3>文章的组织方式</h3><div class="structure-flow"><span>标题</span><i></i><span>${titleQuestions ? '问题切入' : '直接开场'}</span><i></i><span>${headingCount ? '分段展开' : '连续展开'}</span><i></i><span>${punctuation.question ? '互动收束' : '观点收束'}</span></div><p>标题问句 ${titleQuestions} 篇。段落平均 ${formatNumber(averageParagraph)} 字，可作为后续结构模板的参考。</p></article>
     <article class="analysis-card prompt-card"><div class="card-top"><div><span class="card-label">AI-ready prompt</span><h3>带着这份画像继续分析</h3></div><button class="text-button copy-prompt" id="copyPromptButton" type="button">复制提示词</button></div><pre>${escapeHtml(aiPromptText)}</pre></article>`;
-  analysisDetails.open = demo;
+  analysisDetails.open = expanded;
   demoModeBanner.hidden = !demo;
   reportSection.hidden = false;
   reportMarkdown = `# ${demo ? '示例' : ''}Writing DNA 分析结果\n\n- 语料名称：${demo ? '示例作者文章集' : corpusInput.value.trim() || '未命名写作语料'}\n- 作者 / 账号：${demo ? '虚构示例作者' : authorInput.value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n## Writing DNA 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇画像\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 尚未形成关键词样本'}\n\n## 句子节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 情绪语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事方式\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 常见开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 常见结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI-ready prompt\n\n${aiPromptText}\n\n> ${demo ? '这是虚构语料生成的示例报告。' : '这是一份浏览器本地统计结果，用于发现线索。完整的风格判断仍需结合全文与选题语境。'}\n`;
-  reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (shouldScroll) reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function showDemoReport() {
+function showDemoReport(shouldScroll = false) {
   isDemoMode = true;
-  buildReport(demoArticles, true);
+  buildReport(demoArticles, true, true, shouldScroll);
 }
 
 function escapeHtml(value) { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
@@ -261,7 +302,7 @@ function downloadPackage() {
   }, null, 2), 'application/json;charset=utf-8', 'writing-dna-corpus.json');
 }
 function downloadReport() { if (!reportMarkdown) buildReport(); download(reportMarkdown, 'text/markdown;charset=utf-8', 'writing-dna-pre-scan.md'); }
-async function copyAiPrompt(button) {
+async function copyAiPrompt(button, restoreLabel = true) {
   try {
     await navigator.clipboard.writeText(aiPromptText);
   } catch (error) {
@@ -273,20 +314,44 @@ async function copyAiPrompt(button) {
     fallback.remove();
   }
   button.textContent = '已复制';
-  window.setTimeout(() => { button.textContent = '复制提示词'; }, 1600);
+  if (restoreLabel) window.setTimeout(() => { button.textContent = '复制提示词'; }, 1600);
 }
 
 fileInput.addEventListener('change', event => { addFiles(event.target.files); event.target.value = ''; });
-heroUploadButton.addEventListener('click', () => fileInput.click());
-emptyUploadButton.addEventListener('click', () => fileInput.click());
-['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('dragging'); }));
+heroUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); fileInput.click(); });
+emptyUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); fileInput.click(); });
+['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); if (onboardingStage !== 'analyzing') setOnboardingStage('drag'); dropzone.classList.add('dragging'); }));
 ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
 articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); render(); } });
-clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; render(); showDemoReport(); });
-exportButton.addEventListener('click', downloadPackage);
-scanButton.addEventListener('click', () => buildReport());
-demoUploadButton.addEventListener('click', () => fileInput.click());
+clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; render(); showDemoReport(); setOnboardingStage('welcome'); });
+scanButton.addEventListener('click', async () => {
+  if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
+    setOnboardingStage('drag');
+    fileInput.click();
+  } else if (onboardingStage === 'preview') {
+    buildReport(articles, false, true);
+    setOnboardingStage('dna');
+  } else if (onboardingStage === 'dna') {
+    await copyAiPrompt(scanButton, false);
+    setOnboardingStage('export');
+  } else if (onboardingStage === 'export') {
+    setOnboardingStage('drag');
+    fileInput.click();
+  }
+});
+exportButton.addEventListener('click', () => {
+  if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
+    showDemoReport(true);
+    setOnboardingStage('preview');
+  } else if (onboardingStage === 'preview') {
+    setOnboardingStage('drag');
+    fileInput.click();
+  } else {
+    downloadReport();
+  }
+});
+demoUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); fileInput.click(); });
 $('#downloadReportButton').addEventListener('click', downloadReport);
 reportSection.addEventListener('click', event => {
   const button = event.target.closest('#copyPromptButton');
@@ -312,6 +377,7 @@ async function start() {
   } catch (error) { console.warn('Unable to restore workspace locally.', error); }
   render();
   if (!articles.length) showDemoReport();
+  setOnboardingStage(articles.length ? 'preview' : 'welcome');
 }
 
 start();
