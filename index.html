@@ -24,9 +24,26 @@
       </header>
 
       <section class="hero" id="top">
-        <p class="eyebrow">写作风格蒸馏器</p>
-        <h1>把文章，变成<br /><em>可复用的写作方法</em></h1>
-        <p class="hero-copy">导入一组完整文章，整理成可供 AI 分析的语料库。积累到 20 篇后，即可开始提炼属于你的写作 DNA。</p>
+        <div class="hero-copy-block">
+          <p class="eyebrow">写作 DNA 工作台</p>
+          <h1>把一组文章<br />变成<span>可复用的写作方法</span></h1>
+          <p class="hero-copy">为内容创作者、研究者和内容团队准备。导入你的文章，提炼可持续使用的语言、结构与判断方式。</p>
+          <div class="hero-actions">
+            <button class="primary-button hero-primary" id="heroUploadButton" type="button">导入文章 <span>→</span></button>
+            <a class="secondary-link" href="#how-it-works">查看工作方式</a>
+          </div>
+          <p class="hero-reassurance">文章只在当前浏览器中解压与保存。</p>
+        </div>
+        <div class="hero-upload" aria-label="文章导入区">
+          <div class="upload-heading"><span class="upload-kicker">开始语料库</span><strong>导入文章</strong><small>支持多个 Markdown、文本文件或一个 ZIP</small></div>
+          <label class="dropzone hero-dropzone" id="dropzone" for="fileInput">
+            <input id="fileInput" type="file" accept=".md,.txt,.zip,text/markdown,text/plain,application/zip,application/x-zip-compressed" multiple />
+            <span class="upload-icon">↑</span>
+            <strong>拖入文章或 ZIP</strong>
+            <small>也可以点击选择文件</small>
+          </label>
+          <div class="upload-note"><span>本地保存</span><span>推荐 20 篇完整文章</span></div>
+        </div>
       </section>
 
       <section class="progress-section" aria-label="工作进度">
@@ -37,18 +54,12 @@
 
       <section class="workspace-grid">
         <div class="upload-panel">
-          <div class="section-heading"><p class="eyebrow">01 · 导入语料</p><h2>放入你的文章</h2></div>
-          <label class="dropzone" id="dropzone" for="fileInput">
-            <input id="fileInput" type="file" accept=".md,.txt,.zip,text/markdown,text/plain,application/zip,application/x-zip-compressed" multiple />
-            <span class="upload-icon">↥</span>
-            <strong>拖入文件，或点击选择</strong>
-            <small>支持 .md、.txt 与 ZIP，可一次导入多篇</small>
-          </label>
+          <div class="section-heading"><p class="eyebrow">语料信息</p><h2>给这批文章一个上下文</h2><p>这些信息会写入导出的分析包，帮助后续分析理解语料来源。</p></div>
           <div class="field-row">
             <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
             <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
           </div>
-          <p class="privacy-note">文章会自动保存在此浏览器中；内容不会上传到服务器。</p>
+          <div class="storage-note"><strong>自动保存已开启</strong><p>关闭或刷新页面后，文章仍会保留在此浏览器中。</p></div>
         </div>
 
         <aside class="insight-panel">
@@ -65,19 +76,19 @@
           <div><p class="eyebrow">03 · 文章清单</p><h2>已导入的语料</h2></div>
           <button class="text-button" id="clearButton" type="button" disabled>清空全部</button>
         </div>
-        <div class="empty-state" id="emptyState"><span>✦</span><p>还没有文章。导入后会在这里显示标题、字数与格式。</p></div>
+        <div class="empty-state" id="emptyState"><div class="empty-mark" aria-hidden="true">0</div><h3>从第一篇文章开始</h3><p>导入 Markdown、文本文件或一个 ZIP，文章会保存在你的浏览器中。</p><button class="secondary-button empty-upload" id="emptyUploadButton" type="button">导入文章</button></div>
         <ul class="article-list" id="articleList" aria-live="polite"></ul>
       </section>
 
       <section class="action-section">
         <div>
-          <p class="eyebrow">04 · 交给 AI 分析</p>
-          <h2>先做一次本地预分析</h2>
-          <p>在浏览器内生成文章长度、段落与句子节奏等基础观察，再下载完整语料交接包，交给支持「写作 DNA」分析的 AI 深入蒸馏。</p>
+          <p class="eyebrow">下一步</p>
+          <h2>先看清语料，再交给 AI 深入蒸馏</h2>
+          <p>本地预分析会整理文章长度、段落与句子节奏。确认语料后，再导出完整交接包。</p>
         </div>
         <div class="action-buttons">
-          <button class="secondary-button" id="scanButton" type="button" disabled>生成预分析</button>
-          <button class="primary-button" id="exportButton" type="button" disabled>导出分析包 <span>→</span></button>
+          <button class="primary-button" id="scanButton" type="button" disabled>生成预分析 <span>→</span></button>
+          <button class="secondary-button" id="exportButton" type="button" disabled>导出分析包</button>
         </div>
       </section>
 
@@ -87,12 +98,13 @@
         <p class="report-disclaimer">这是本地统计与观察，不等同于完整的风格蒸馏。完整 DNA 仍应由 AI 结合全文、结构和选题语境进行分析。</p>
       </section>
 
-      <section class="how-section">
-        <p class="eyebrow">HOW IT WORKS</p>
+      <section class="how-section" id="how-it-works">
+        <p class="eyebrow">工作方式</p>
+        <h2>从文章库到写作 DNA</h2>
         <ol>
-          <li><span>01</span><b>收集</b><p>上传至少 20 篇完整文章。</p></li>
-          <li><span>02</span><b>导出</b><p>下载专属语料交接包。</p></li>
-          <li><span>03</span><b>蒸馏</b><p>交给 AI 提炼语言、结构与思维方式。</p></li>
+          <li><b>收集语料</b><p>放入同一作者或账号的完整文章。</p></li>
+          <li><b>确认规律</b><p>用本地预分析检查长度、节奏和标题样本。</p></li>
+          <li><b>提炼风格</b><p>导出交接包，生成可复用的 Writing DNA。</p></li>
         </ol>
       </section>
     </main>
