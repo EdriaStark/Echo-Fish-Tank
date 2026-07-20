@@ -10,6 +10,7 @@ let onboardingStage = 'welcome';
 let uploadSuccessTimer;
 
 const $ = (selector) => document.querySelector(selector);
+const UI = window.WritingDNAComponents;
 const fileInput = $('#fileInput');
 const dropzone = $('#dropzone');
 const articleList = $('#articleList');
@@ -283,17 +284,15 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   const difficultyNote = averageSentence <= 18 ? '短句占比较高，阅读推进较快。' : averageSentence <= 30 ? '句长与信息量保持平衡。' : '单句承载信息较多，适合加入短句换气。';
   const readiness = demo ? '这是一份示例结果。上传你的文章后，所有结论会替换为仅属于你的本地统计。' : source.length >= requiredCount ? '语料规模已达到建议门槛，可以进入深入蒸馏。' : `目前有 ${source.length} 篇文章，继续补充到 20 篇后，风格判断会更稳定。`;
   const dnaSummary = `这组文章呈现出以${dominantTone}语气为主、用${dominantNarrative}推进的表达倾向。平均每段 ${formatNumber(averageParagraph)} 字，每句 ${formatNumber(averageSentence)} 字，整体读感为${difficulty}。`;
-  const openingSamples = articles.slice(0, 3).map(article => compactText(firstSentence(article.text), 42));
-  const endingSamples = articles.slice(-3).map(article => compactText(lastSentence(article.text), 42));
+  const openingSamples = source.slice(0, 3).map(article => compactText(firstSentence(article.text), 42));
+  const endingSamples = source.slice(-3).map(article => compactText(lastSentence(article.text), 42));
   aiPromptText = `请基于以下 Writing DNA 继续分析并输出可执行的写作指南。\n\n写作画像：${dnaSummary}\n高频关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n句子节奏：平均 ${averageSentence} 字 / 句，${rhythm.map(([name, value]) => `${name} ${value} 句`).join('；')}\n叙事方式：${dominantNarrative}\n常见语气：${dominantTone}\n\n请输出：\n1. 语言与词汇规则\n2. 标题、开头、正文、结尾的结构模板\n3. 需要保留与避免的表达方式\n4. 3 个可直接套用的写作提示词\n\n重要：所有结论都应引用或归纳这批文章中的真实模式，不能补造作者偏好。`;
-  reportGrid.innerHTML = `
-    <article class="dna-summary-card">
-      <div><span class="card-label">Writing DNA 摘要</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批写作语料')}的表达画像</h3><p>${escapeHtml(dnaSummary)}</p></div>
-      <div class="summary-readiness"><b>${demo ? '示例报告' : source.length >= requiredCount ? '可以深入分析' : '持续收集语料'}</b><span>${escapeHtml(readiness)}</span></div>
-    </article>
-    <article class="report-card metric-card"><span class="card-label">阅读难度</span><strong>${difficulty}</strong><p>${difficultyNote}</p></article>
-    <article class="report-card metric-card"><span class="card-label">核心节奏</span><strong>${formatNumber(averageSentence)}<small> 字 / 句</small></strong><p>平均 ${formatNumber(averageParagraph)} 字 / 段，共 ${formatNumber(sentences.length)} 句。</p></article>
-    <article class="report-card metric-card"><span class="card-label">写作结构</span><strong>${headingCount ? '分层' : '连贯'}</strong><p>${headingCount ? `检测到 ${headingCount} 个 Markdown 标题。` : '以连续段落为主，标题层级较少。'}</p></article>`;
+  reportGrid.innerHTML = [
+    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA 摘要</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批写作语料')}的表达画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness"><b>${demo ? '示例报告' : source.length >= requiredCount ? '可以深入分析' : '持续收集语料'}</b><span>${escapeHtml(readiness)}</span></div>` }),
+    UI.Metric({ label: '阅读难度', value: difficulty, description: difficultyNote }),
+    UI.Metric({ label: '核心节奏', value: `${formatNumber(averageSentence)}<small> 字 / 句</small>`, description: `平均 ${formatNumber(averageParagraph)} 字 / 段，共 ${formatNumber(sentences.length)} 句。` }),
+    UI.Metric({ label: '写作结构', value: headingCount ? '分层' : '连贯', description: headingCount ? `检测到 ${headingCount} 个 Markdown 标题。` : '以连续段落为主，标题层级较少。' })
+  ].join('');
   analysisDetailGrid.innerHTML = `
     <article class="analysis-card vocabulary-card"><div class="card-top"><div><span class="card-label">词汇画像</span><h3>高频关键词</h3></div><span class="card-caption">本地统计</span></div><div class="bar-list">${keywords.length ? barRows(keywords, ' 次') : '<p class="card-empty">文章篇幅不足，尚未形成关键词样本。</p>'}</div></article>
     <article class="analysis-card rhythm-card"><div class="card-top"><div><span class="card-label">句子节奏</span><h3>长短句分布</h3></div><span class="card-caption">${formatNumber(averageSentence)} 字 / 句</span></div><div class="bar-list">${barRows(rhythm, ' 句')}</div></article>
