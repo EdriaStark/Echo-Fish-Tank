@@ -80,15 +80,23 @@
         <ul class="article-list" id="articleList" aria-live="polite"></ul>
       </section>
 
-      <section class="action-section">
-        <div>
-          <p class="eyebrow">下一步</p>
-          <h2>先看清语料，再交给 AI 深入蒸馏</h2>
-          <p>本地预分析会整理文章长度、段落与句子节奏。确认语料后，再导出完整交接包。</p>
+      <section class="action-section onboarding-section" id="onboardingSection" aria-label="开始流程">
+        <div class="onboarding-copy">
+          <p class="eyebrow" id="onboardingEyebrow">开始使用</p>
+          <h2 id="onboardingTitle">欢迎来到你的写作 DNA 工作台</h2>
+          <p id="onboardingDescription">先导入几篇完整文章。系统会在浏览器中整理语料，并带你走完从预览到 AI 提示词的过程。</p>
         </div>
-        <div class="action-buttons">
-          <button class="primary-button" id="scanButton" type="button" disabled>生成预分析 <span>→</span></button>
-          <button class="secondary-button" id="exportButton" type="button" disabled>导出分析包</button>
+        <ol class="onboarding-steps" id="onboardingSteps">
+          <li data-stage="welcome"><span>欢迎</span></li>
+          <li data-stage="drag"><span>导入</span></li>
+          <li data-stage="analyzing"><span>分析中</span></li>
+          <li data-stage="preview"><span>预览</span></li>
+          <li data-stage="dna"><span>生成 DNA</span></li>
+          <li data-stage="export"><span>导出提示词</span></li>
+        </ol>
+        <div class="action-buttons onboarding-actions">
+          <button class="primary-button" id="scanButton" type="button">导入文章 <span>→</span></button>
+          <button class="secondary-button" id="exportButton" type="button">查看示例报告</button>
         </div>
       </section>
 
