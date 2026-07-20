@@ -8,6 +8,9 @@ let saveTimer;
 let isDemoMode = false;
 let onboardingStage = 'welcome';
 let uploadSuccessTimer;
+let jsZipPromise;
+let demoArticlesPromise;
+const numberFrames = new WeakMap();
 
 const $ = (selector) => document.querySelector(selector);
 const UI = window.WritingDNAComponents;
@@ -78,6 +81,8 @@ function setOnboardingStage(stage) {
 }
 
 function animateNumber(element, target) {
+  const activeFrame = numberFrames.get(element);
+  if (activeFrame) cancelAnimationFrame(activeFrame);
   const previous = Number(element.dataset.value || 0);
   const start = Number.isFinite(previous) ? previous : 0;
   const duration = Math.min(700, 260 + Math.abs(target - start) * 8);
@@ -86,10 +91,10 @@ function animateNumber(element, target) {
     const progress = Math.min(1, (now - began) / duration);
     const eased = 1 - Math.pow(1 - progress, 4);
     element.textContent = formatNumber(Math.round(start + (target - start) * eased));
-    if (progress < 1) requestAnimationFrame(update);
-    else element.dataset.value = String(target);
+    if (progress < 1) numberFrames.set(element, requestAnimationFrame(update));
+    else { element.dataset.value = String(target); numberFrames.delete(element); }
   };
-  requestAnimationFrame(update);
+  numberFrames.set(element, requestAnimationFrame(update));
 }
 
 function playUploadSuccess() {
@@ -152,19 +157,31 @@ function articleFromText(name, text) {
   };
 }
 
-const demoArticles = [
-  ['把复杂问题讲清楚，需要先承认不确定', '很多复杂问题并不缺答案，缺的是一个让人愿意继续思考的起点。今天想从一个工作里的小困惑讲起。我们总希望快速得出结论，但真正有用的方法，往往是先把问题说完整。\n\n当你愿意承认不确定，讨论才会从立场回到事实。接下来可以拆开假设，找到最小的行动。\n\n写作也是如此。先让读者看见问题，再陪他抵达一个暂时可信的答案。'],
-  ['为什么好的表达总是留一点余地', '上周和朋友聊天时，他问我怎样写出更有说服力的文章。我没有立刻回答，因为说服不是把声音放大。\n\n好的表达会给事实留位置，也给读者留一点判断空间。你不需要替所有人完成思考。\n\n如果一篇文章能让人愿意把自己的经验带进来，它就已经开始发生作用。'],
-  ['先把事情做小，才有机会持续', '我们常常把开始想得太重，于是迟迟没有开始。一个项目、一篇文章，甚至一次对话，都可以先从更小的动作进入。\n\n小不是敷衍，而是给反馈留下空间。你可以先写三百字，先问一个问题，先完成一次可见的尝试。\n\n持续不是意志力的胜利，它来自一个足够轻的开始。'],
-  ['那些看似无效的记录，后来都帮了忙', '我曾经保存过很多没有结论的笔记。它们零散、重复，有时甚至显得毫无价值。\n\n后来回头看才发现，重复出现的问题就是线索。记录不会立刻给出答案，却会慢慢形成判断的材料。\n\n所以别急着评价一段记录是否有用。先留下来，时间会帮你看见它的意义。'],
-  ['做决定前，先分清事实和感受', '当事情变得紧急，我们很容易把感受当成事实。焦虑会说现在就要行动，但它不一定告诉你行动的方向。\n\n一个简单的方法是写下两列：已经知道的事实，以及仍然需要验证的假设。这样做不是为了变冷静，而是为了让下一步更准确。\n\n有些决定不需要更快，它们需要更清楚。'],
-  ['写给正在寻找方法的人', '如果你也在寻找一种更稳定的工作方式，不妨从观察自己开始。你在哪些时刻写得最顺，哪些问题总会反复出现？\n\n方法不是从外面拿来的模板，而是从一次次具体尝试里长出来的。把经验留下，把变化说清。\n\n愿你下一次开始时，已经比上一次更了解自己。']
-].map(([title, text], index) => articleFromText(`示例文章-${index + 1}.md`, `# ${title}\n\n${text}`));
+function loadJsZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  if (jsZipPromise) return jsZipPromise;
+  jsZipPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    script.async = true;
+    script.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('ZIP reader unavailable'));
+    script.onerror = () => reject(new Error('ZIP reader unavailable'));
+    document.head.append(script);
+  });
+  return jsZipPromise;
+}
+
+function loadDemoArticles() {
+  if (!demoArticlesPromise) {
+    demoArticlesPromise = import('./demo-data.js').then(({ demoArticleSeeds }) => demoArticleSeeds.map(([title, text], index) => articleFromText(`示例文章-${index + 1}.md`, `# ${title}\n\n${text}`)));
+  }
+  return demoArticlesPromise;
+}
 
 async function unpackZip(file) {
-  if (!window.JSZip) throw new Error('ZIP reader unavailable');
   if (file.size > 50 * 1024 * 1024) throw new Error('ZIP is too large');
-  const zip = await window.JSZip.loadAsync(file);
+  const JSZip = await loadJsZip();
+  const zip = await JSZip.loadAsync(file);
   const entries = Object.values(zip.files).filter(entry => !entry.dir && isArticleFile(entry.name));
   const results = await Promise.all(entries.map(async entry => articleFromText(entry.name, await entry.async('string'))));
   return results;
@@ -191,6 +208,7 @@ async function addFiles(fileList) {
     reportSection.hidden = true;
     reportMarkdown = '';
   }
+  scheduleSave();
   render();
   if (!articles.length) {
     setOnboardingStage('welcome');
@@ -222,17 +240,14 @@ function render() {
   clearButton.disabled = !count;
   emptyState.hidden = Boolean(count);
   articleList.innerHTML = articles.map((article, index) => `<li><span class="article-index">${String(index + 1).padStart(2, '0')}</span><span class="article-title" title="${escapeHtml(article.title)}">${escapeHtml(article.title)}</span><span class="article-meta">${formatNumber(article.characters)} 字 · ${article.type}</span><button class="remove-button" type="button" data-id="${article.id}" aria-label="移除 ${escapeHtml(article.title)}">×</button></li>`).join('');
-  scheduleSave();
 }
 
 function average(values) { return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0; }
-function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function compactText(value, limit = 34) { const clean = value.replace(/\s+/g, ' ').trim(); return clean.length > limit ? `${clean.slice(0, limit)}…` : clean; }
 function splitSentences(text) { return text.split(/[。！？!?]+/).map(item => item.trim()).filter(Boolean); }
 function firstSentence(text) { return splitSentences(text)[0] || text.trim(); }
 function lastSentence(text) { const list = splitSentences(text); return list[list.length - 1] || text.trim(); }
 function countMatches(text, expression) { return (text.match(expression) || []).length; }
-function percentage(part, total) { return total ? Math.round((part / total) * 100) : 0; }
 function topKeywords(text) {
   const stopwords = new Set(['我们', '你们', '他们', '这个', '那个', '一个', '一些', '可以', '没有', '自己', '因为', '所以', '如果', '但是', '以及', '还有', '已经', '不是', '就是', '进行', '什么', '怎么', '这样', '时候', '看到', '觉得', '可能', '需要', '通过', '对于', '其中', '文章', '内容', '写作']);
   const counts = new Map();
@@ -308,8 +323,9 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   if (shouldScroll) reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function showDemoReport(shouldScroll = false) {
+async function showDemoReport(shouldScroll = false) {
   isDemoMode = true;
+  const demoArticles = await loadDemoArticles();
   buildReport(demoArticles, true, true, shouldScroll);
 }
 
@@ -318,15 +334,6 @@ function download(content, type, name) {
   const url = URL.createObjectURL(new Blob([content], { type }));
   const link = Object.assign(document.createElement('a'), { href: url, download: name });
   link.click(); URL.revokeObjectURL(url);
-}
-function downloadPackage() {
-  download(JSON.stringify({
-    schema: 'writing-dna-corpus/v1', exportedAt: new Date().toISOString(),
-    corpusName: corpusInput.value.trim() || '未命名写作语料', author: authorInput.value.trim() || '未填写',
-    instructions: '请使用 writing-dna-skill 分析本语料。语料少于 20 篇时，请将结果明确标记为演示性分析。',
-    summary: { articleCount: articles.length, characterCount: articles.reduce((sum, article) => sum + article.characters, 0) },
-    articles: articles.map(({ id, ...article }) => article)
-  }, null, 2), 'application/json;charset=utf-8', 'writing-dna-corpus.json');
 }
 function downloadReport() { if (!reportMarkdown) buildReport(); download(reportMarkdown, 'text/markdown;charset=utf-8', 'writing-dna-pre-scan.md'); }
 async function copyAiPrompt(button, restoreLabel = true) {
@@ -350,8 +357,8 @@ emptyUploadButton.addEventListener('click', () => { setOnboardingStage('drag'); 
 ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); if (onboardingStage !== 'analyzing') setOnboardingStage('drag'); dropzone.classList.add('dragging'); }));
 ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
-articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); render(); } });
-clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; reportSection.hidden = true; render(); setOnboardingStage('welcome'); });
+articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); scheduleSave(); render(); } });
+clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; reportSection.hidden = true; scheduleSave(); render(); setOnboardingStage('welcome'); });
 scanButton.addEventListener('click', async () => {
   if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
     setOnboardingStage('drag');
@@ -367,9 +374,9 @@ scanButton.addEventListener('click', async () => {
     fileInput.click();
   }
 });
-exportButton.addEventListener('click', () => {
+exportButton.addEventListener('click', async () => {
   if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
-    showDemoReport(true);
+    await showDemoReport(true);
     setOnboardingStage('preview');
   } else if (onboardingStage === 'preview') {
     setOnboardingStage('drag');
