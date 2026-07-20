@@ -5,6 +5,7 @@ const storeName = 'workspace';
 let reportMarkdown = '';
 let aiPromptText = '';
 let saveTimer;
+let isDemoMode = false;
 
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $('#fileInput');
@@ -22,11 +23,13 @@ const reportSection = $('#reportSection');
 const reportGrid = $('#reportGrid');
 const analysisDetailGrid = $('#analysisDetailGrid');
 const analysisDetails = $('#analysisDetails');
+const demoModeBanner = $('#demoModeBanner');
 const themeToggle = $('#themeToggle');
 const authorInput = $('#authorInput');
 const corpusInput = $('#corpusInput');
 const heroUploadButton = $('#heroUploadButton');
 const emptyUploadButton = $('#emptyUploadButton');
+const demoUploadButton = $('#demoUploadButton');
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -87,6 +90,15 @@ function articleFromText(name, text) {
   };
 }
 
+const demoArticles = [
+  ['把复杂问题讲清楚，需要先承认不确定', '很多复杂问题并不缺答案，缺的是一个让人愿意继续思考的起点。今天想从一个工作里的小困惑讲起。我们总希望快速得出结论，但真正有用的方法，往往是先把问题说完整。\n\n当你愿意承认不确定，讨论才会从立场回到事实。接下来可以拆开假设，找到最小的行动。\n\n写作也是如此。先让读者看见问题，再陪他抵达一个暂时可信的答案。'],
+  ['为什么好的表达总是留一点余地', '上周和朋友聊天时，他问我怎样写出更有说服力的文章。我没有立刻回答，因为说服不是把声音放大。\n\n好的表达会给事实留位置，也给读者留一点判断空间。你不需要替所有人完成思考。\n\n如果一篇文章能让人愿意把自己的经验带进来，它就已经开始发生作用。'],
+  ['先把事情做小，才有机会持续', '我们常常把开始想得太重，于是迟迟没有开始。一个项目、一篇文章，甚至一次对话，都可以先从更小的动作进入。\n\n小不是敷衍，而是给反馈留下空间。你可以先写三百字，先问一个问题，先完成一次可见的尝试。\n\n持续不是意志力的胜利，它来自一个足够轻的开始。'],
+  ['那些看似无效的记录，后来都帮了忙', '我曾经保存过很多没有结论的笔记。它们零散、重复，有时甚至显得毫无价值。\n\n后来回头看才发现，重复出现的问题就是线索。记录不会立刻给出答案，却会慢慢形成判断的材料。\n\n所以别急着评价一段记录是否有用。先留下来，时间会帮你看见它的意义。'],
+  ['做决定前，先分清事实和感受', '当事情变得紧急，我们很容易把感受当成事实。焦虑会说现在就要行动，但它不一定告诉你行动的方向。\n\n一个简单的方法是写下两列：已经知道的事实，以及仍然需要验证的假设。这样做不是为了变冷静，而是为了让下一步更准确。\n\n有些决定不需要更快，它们需要更清楚。'],
+  ['写给正在寻找方法的人', '如果你也在寻找一种更稳定的工作方式，不妨从观察自己开始。你在哪些时刻写得最顺，哪些问题总会反复出现？\n\n方法不是从外面拿来的模板，而是从一次次具体尝试里长出来的。把经验留下，把变化说清。\n\n愿你下一次开始时，已经比上一次更了解自己。']
+].map(([title, text], index) => articleFromText(`示例文章-${index + 1}.md`, `# ${title}\n\n${text}`));
+
 async function unpackZip(file) {
   if (!window.JSZip) throw new Error('ZIP reader unavailable');
   if (file.size > 50 * 1024 * 1024) throw new Error('ZIP is too large');
@@ -110,11 +122,21 @@ async function addFiles(fileList) {
     articles.push(...directArticles);
     alert('有一个 ZIP 无法读取。请确认它未加密，并且其中包含 .md 或 .txt 文件。');
   }
+  if (articles.length) {
+    isDemoMode = false;
+    reportSection.hidden = true;
+    reportMarkdown = '';
+  }
   render();
 }
 
 function render() {
   const count = articles.length;
+  if (count && isDemoMode) {
+    isDemoMode = false;
+    reportSection.hidden = true;
+    reportMarkdown = '';
+  }
   const total = articles.reduce((sum, article) => sum + article.characters, 0);
   const ready = count >= requiredCount;
   $('#articleCount').textContent = count;
@@ -155,12 +177,12 @@ function barRows(items, suffix = '') {
   const maximum = Math.max(...items.map(([, value]) => value), 1);
   return items.map(([label, value]) => `<div class="bar-row"><span>${escapeHtml(label)}</span><i><b style="width:${Math.max(8, Math.round((value / maximum) * 100))}%"></b></i><strong>${value}${suffix}</strong></div>`).join('');
 }
-function buildReport() {
-  const joined = articles.map(article => article.text).join('\n');
+function buildReport(source = articles, demo = false) {
+  const joined = source.map(article => article.text).join('\n');
   const paragraphLengths = joined.split(/\n\s*\n/).map(countCharacters).filter(Boolean);
   const sentenceTexts = splitSentences(joined);
   const sentences = sentenceTexts.map(countCharacters).filter(Boolean);
-  const total = articles.reduce((sum, article) => sum + article.characters, 0);
+  const total = source.reduce((sum, article) => sum + article.characters, 0);
   const averageSentence = average(sentences);
   const averageParagraph = average(paragraphLengths);
   const punctuation = { question: countMatches(joined, /[？?]/g), exclamation: countMatches(joined, /[！!]/g), comma: countMatches(joined, /，/g) };
@@ -185,19 +207,19 @@ function buildReport() {
     ['个人经验', firstPerson], ['读者对话', readerAddress], ['提问推进', punctuation.question], ['故事切入', storyMarkers]
   ];
   const dominantNarrative = [...narrative].sort((a, b) => b[1] - a[1])[0][0];
-  const titleQuestions = articles.filter(article => /[？?]/.test(article.title)).length;
+  const titleQuestions = source.filter(article => /[？?]/.test(article.title)).length;
   const headingCount = countMatches(joined, /^#{1,6}\s/gm);
   const difficulty = averageSentence <= 18 ? '易读' : averageSentence <= 30 ? '适中' : '信息密集';
   const difficultyNote = averageSentence <= 18 ? '短句占比较高，阅读推进较快。' : averageSentence <= 30 ? '句长与信息量保持平衡。' : '单句承载信息较多，适合加入短句换气。';
-  const readiness = articles.length >= requiredCount ? '语料规模已达到建议门槛，可以进入深入蒸馏。' : `目前有 ${articles.length} 篇文章，继续补充到 20 篇后，风格判断会更稳定。`;
+  const readiness = demo ? '这是一份示例结果。上传你的文章后，所有结论会替换为仅属于你的本地统计。' : source.length >= requiredCount ? '语料规模已达到建议门槛，可以进入深入蒸馏。' : `目前有 ${source.length} 篇文章，继续补充到 20 篇后，风格判断会更稳定。`;
   const dnaSummary = `这组文章呈现出以${dominantTone}语气为主、用${dominantNarrative}推进的表达倾向。平均每段 ${formatNumber(averageParagraph)} 字，每句 ${formatNumber(averageSentence)} 字，整体读感为${difficulty}。`;
   const openingSamples = articles.slice(0, 3).map(article => compactText(firstSentence(article.text), 42));
   const endingSamples = articles.slice(-3).map(article => compactText(lastSentence(article.text), 42));
   aiPromptText = `请基于以下 Writing DNA 继续分析并输出可执行的写作指南。\n\n写作画像：${dnaSummary}\n高频关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n句子节奏：平均 ${averageSentence} 字 / 句，${rhythm.map(([name, value]) => `${name} ${value} 句`).join('；')}\n叙事方式：${dominantNarrative}\n常见语气：${dominantTone}\n\n请输出：\n1. 语言与词汇规则\n2. 标题、开头、正文、结尾的结构模板\n3. 需要保留与避免的表达方式\n4. 3 个可直接套用的写作提示词\n\n重要：所有结论都应引用或归纳这批文章中的真实模式，不能补造作者偏好。`;
   reportGrid.innerHTML = `
     <article class="dna-summary-card">
-      <div><span class="card-label">Writing DNA 摘要</span><h3>${escapeHtml(corpusInput.value.trim() || '这批写作语料')}的表达画像</h3><p>${escapeHtml(dnaSummary)}</p></div>
-      <div class="summary-readiness"><b>${articles.length >= requiredCount ? '可以深入分析' : '持续收集语料'}</b><span>${escapeHtml(readiness)}</span></div>
+      <div><span class="card-label">Writing DNA 摘要</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批写作语料')}的表达画像</h3><p>${escapeHtml(dnaSummary)}</p></div>
+      <div class="summary-readiness"><b>${demo ? '示例报告' : source.length >= requiredCount ? '可以深入分析' : '持续收集语料'}</b><span>${escapeHtml(readiness)}</span></div>
     </article>
     <article class="report-card metric-card"><span class="card-label">阅读难度</span><strong>${difficulty}</strong><p>${difficultyNote}</p></article>
     <article class="report-card metric-card"><span class="card-label">核心节奏</span><strong>${formatNumber(averageSentence)}<small> 字 / 句</small></strong><p>平均 ${formatNumber(averageParagraph)} 字 / 段，共 ${formatNumber(sentences.length)} 句。</p></article>
@@ -211,10 +233,16 @@ function buildReport() {
     <article class="analysis-card sample-card"><span class="card-label">常见结尾</span><h3>文章如何收束</h3><ol>${endingSamples.map(sample => `<li>${escapeHtml(sample || '尚无结尾样本')}</li>`).join('')}</ol></article>
     <article class="analysis-card structure-card"><span class="card-label">结构模式</span><h3>文章的组织方式</h3><div class="structure-flow"><span>标题</span><i></i><span>${titleQuestions ? '问题切入' : '直接开场'}</span><i></i><span>${headingCount ? '分段展开' : '连续展开'}</span><i></i><span>${punctuation.question ? '互动收束' : '观点收束'}</span></div><p>标题问句 ${titleQuestions} 篇。段落平均 ${formatNumber(averageParagraph)} 字，可作为后续结构模板的参考。</p></article>
     <article class="analysis-card prompt-card"><div class="card-top"><div><span class="card-label">AI-ready prompt</span><h3>带着这份画像继续分析</h3></div><button class="text-button copy-prompt" id="copyPromptButton" type="button">复制提示词</button></div><pre>${escapeHtml(aiPromptText)}</pre></article>`;
-  analysisDetails.open = false;
+  analysisDetails.open = demo;
+  demoModeBanner.hidden = !demo;
   reportSection.hidden = false;
-  reportMarkdown = `# Writing DNA 分析结果\n\n- 语料名称：${corpusInput.value.trim() || '未命名写作语料'}\n- 作者 / 账号：${authorInput.value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n## Writing DNA 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇画像\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 尚未形成关键词样本'}\n\n## 句子节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 情绪语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事方式\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 常见开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 常见结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI-ready prompt\n\n${aiPromptText}\n\n> 这是一份浏览器本地统计结果，用于发现线索。完整的风格判断仍需结合全文与选题语境。\n`;
+  reportMarkdown = `# ${demo ? '示例' : ''}Writing DNA 分析结果\n\n- 语料名称：${demo ? '示例作者文章集' : corpusInput.value.trim() || '未命名写作语料'}\n- 作者 / 账号：${demo ? '虚构示例作者' : authorInput.value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n## Writing DNA 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇画像\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 尚未形成关键词样本'}\n\n## 句子节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 情绪语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事方式\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 常见开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 常见结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI-ready prompt\n\n${aiPromptText}\n\n> ${demo ? '这是虚构语料生成的示例报告。' : '这是一份浏览器本地统计结果，用于发现线索。完整的风格判断仍需结合全文与选题语境。'}\n`;
   reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showDemoReport() {
+  isDemoMode = true;
+  buildReport(demoArticles, true);
 }
 
 function escapeHtml(value) { return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]); }
@@ -255,9 +283,10 @@ emptyUploadButton.addEventListener('click', () => fileInput.click());
 ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
 dropzone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
 articleList.addEventListener('click', event => { const id = event.target.dataset.id; if (id) { articles.splice(articles.findIndex(article => article.id === id), 1); render(); } });
-clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; reportSection.hidden = true; render(); });
+clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdown = ''; render(); showDemoReport(); });
 exportButton.addEventListener('click', downloadPackage);
-scanButton.addEventListener('click', buildReport);
+scanButton.addEventListener('click', () => buildReport());
+demoUploadButton.addEventListener('click', () => fileInput.click());
 $('#downloadReportButton').addEventListener('click', downloadReport);
 reportSection.addEventListener('click', event => {
   const button = event.target.closest('#copyPromptButton');
@@ -282,6 +311,7 @@ async function start() {
     }
   } catch (error) { console.warn('Unable to restore workspace locally.', error); }
   render();
+  if (!articles.length) showDemoReport();
 }
 
 start();
