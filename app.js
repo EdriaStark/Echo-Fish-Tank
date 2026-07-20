@@ -16,6 +16,7 @@ const $ = (selector) => document.querySelector(selector);
 const UI = window.WritingDNAComponents;
 const fileInput = $('#fileInput');
 const dropzone = $('#dropzone');
+const importFeedback = $('#importFeedback');
 const articleList = $('#articleList');
 const emptyState = $('#emptyState');
 const progressBar = $('#progressBar');
@@ -149,6 +150,12 @@ function titleFrom(content, fallback) {
   return (line || fallback).replace(/^#{1,6}\s*/, '').slice(0, 80);
 }
 function isArticleFile(name) { return /\.(md|txt)$/i.test(name); }
+function contentKey(text) {
+  const value = text.replace(/\s+/g, ' ').trim();
+  let hash = 5381;
+  for (let index = 0; index < value.length; index += 1) hash = (hash * 33) ^ value.charCodeAt(index);
+  return `${value.length}:${hash >>> 0}`;
+}
 
 function articleFromText(name, text) {
   return {
@@ -194,15 +201,24 @@ async function addFiles(fileList) {
   const directFiles = files.filter(file => isArticleFile(file.name));
   const zipFiles = files.filter(file => /\.zip$/i.test(file.name));
   const directArticles = await Promise.all(directFiles.map(async file => articleFromText(file.name, await file.text())));
+  let packedArticles = [];
   try {
-    const packedArticles = (await Promise.all(zipFiles.map(unpackZip))).flat();
-    articles.push(...directArticles, ...packedArticles);
+    packedArticles = (await Promise.all(zipFiles.map(unpackZip))).flat();
     if (zipFiles.length && !packedArticles.length) alert('ZIP 中没有可用文章。');
   } catch (error) {
     console.warn(error);
-    articles.push(...directArticles);
     alert('无法读取 ZIP。请检查文件。');
   }
+  const existing = new Set(articles.map(article => contentKey(article.text)));
+  const accepted = [];
+  let duplicateCount = 0;
+  [...directArticles, ...packedArticles].forEach(article => {
+    const key = contentKey(article.text);
+    if (existing.has(key)) duplicateCount += 1;
+    else { existing.add(key); accepted.push(article); }
+  });
+  articles.push(...accepted);
+  importFeedback.textContent = accepted.length ? `${accepted.length} 篇已加入${duplicateCount ? `。${duplicateCount} 篇重复，已跳过。` : '。'}` : '没有加入新文章。';
   if (articles.length) {
     isDemoMode = false;
     reportSection.hidden = true;
@@ -262,6 +278,11 @@ function barRows(items, suffix = '') {
   const maximum = Math.max(...items.map(([, value]) => value), 1);
   return items.map(([label, value]) => `<div class="bar-row"><span>${escapeHtml(label)}</span><i><b style="width:${Math.max(8, Math.round((value / maximum) * 100))}%"></b></i><strong>${value}${suffix}</strong></div>`).join('');
 }
+function sampleStrength(source) {
+  if (source.length < 5) return { label: '初步观察', detail: '样本较少。结论可能变化。', tone: 'early' };
+  if (source.length < requiredCount) return { label: '正在形成', detail: '再加入文章，可提高稳定性。', tone: 'forming' };
+  return { label: '较稳定', detail: '样本数量已达到建议范围。', tone: 'ready' };
+}
 function buildReport(source = articles, demo = false, expanded = demo, shouldScroll = true) {
   const joined = source.map(article => article.text).join('\n');
   const paragraphLengths = joined.split(/\n\s*\n/).map(countCharacters).filter(Boolean);
@@ -300,9 +321,11 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   const dnaSummary = `语气偏${dominantTone}。叙事偏${dominantNarrative}。句均 ${formatNumber(averageSentence)} 字。读感${difficulty}。`;
   const openingSamples = source.slice(0, 3).map(article => compactText(firstSentence(article.text), 42));
   const endingSamples = source.slice(-3).map(article => compactText(lastSentence(article.text), 42));
+  const strength = demo ? { label: '示例结果', detail: '这是虚构文章的演示。', tone: 'early' } : sampleStrength(source);
+  const sourceSamples = source.slice(0, 3).map(article => ({ title: article.title, excerpt: compactText(firstSentence(article.text), 72) }));
   aiPromptText = `请基于以下 Writing DNA 分析文章。\n\n画像：${dnaSummary}\n关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n节奏：句均 ${averageSentence} 字。\n叙事：${dominantNarrative}。\n语气：${dominantTone}。\n\n请输出：\n1. 语言规则\n2. 结构模板\n3. 保留表达\n4. 避免表达\n5. 三个写作提示词\n\n只依据这些文章。不要补造偏好。`;
   reportGrid.innerHTML = [
-    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批文章')}的画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness"><b>${demo ? '示例' : source.length >= requiredCount ? '可以分析' : '继续导入'}</b><span>${escapeHtml(readiness)}</span></div>` }),
+    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批文章')}的画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness ${strength.tone}"><b>${strength.label}</b><span>${strength.detail}</span></div><details class="summary-evidence"><summary>查看样本片段</summary><ul>${sourceSamples.map(sample => `<li><b>${escapeHtml(sample.title)}</b><span>${escapeHtml(sample.excerpt)}</span></li>`).join('')}</ul></details>` }),
     UI.Metric({ label: '阅读难度', value: difficulty, description: difficultyNote }),
     UI.Metric({ label: '句子节奏', value: `${formatNumber(averageSentence)}<small> 字 / 句</small>`, description: `段均 ${formatNumber(averageParagraph)} 字。` }),
     UI.Metric({ label: '结构', value: headingCount ? '分层' : '连贯', description: headingCount ? `检测到 ${headingCount} 个标题。` : '以连续段落为主。' })
@@ -319,7 +342,7 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   analysisDetails.open = expanded;
   demoModeBanner.hidden = !demo;
   reportSection.hidden = false;
-  reportMarkdown = `# ${demo ? '示例 ' : ''}Writing DNA\n\n- 语料：${demo ? '示例文章' : corpusInput.value.trim() || '未命名'}\n- 作者：${demo ? '示例作者' : authorInput.value.trim() || '未填写'}\n- 时间：${new Date().toLocaleString('zh-CN')}\n\n## 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 暂无样本'}\n\n## 节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI 提示词\n\n${aiPromptText}\n\n> ${demo ? '这是示例结果。' : '结果仅基于本地统计。'}\n`;
+  reportMarkdown = `# ${demo ? '示例 ' : ''}Writing DNA\n\n- 语料：${demo ? '示例文章' : corpusInput.value.trim() || '未命名'}\n- 作者：${demo ? '示例作者' : authorInput.value.trim() || '未填写'}\n- 时间：${new Date().toLocaleString('zh-CN')}\n- 强度：${strength.label}\n\n## 摘要\n\n${dnaSummary}\n\n${strength.detail}\n\n## 样本片段\n\n${sourceSamples.map(sample => `- ${sample.title}：${sample.excerpt}`).join('\n')}\n\n## 词汇\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 暂无样本'}\n\n## 节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI 提示词\n\n${aiPromptText}\n\n> ${demo ? '这是示例结果。' : '结果来自本地模式统计。'}\n`;
   if (shouldScroll) reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
