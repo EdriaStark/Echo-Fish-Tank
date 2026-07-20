@@ -48,12 +48,12 @@ function setTheme(theme) {
 }
 
 const onboardingContent = {
-  welcome: { eyebrow: '开始使用', title: '欢迎来到你的写作 DNA 工作台', description: '先导入几篇完整文章。系统会在浏览器中整理语料，并带你走完从预览到 AI 提示词的过程。', primary: '导入文章', secondary: '查看示例报告' },
-  drag: { eyebrow: '导入语料', title: '拖入你的文章', description: '支持 Markdown、文本文件或 ZIP。内容只在当前浏览器中处理与保存。', primary: '选择文件', secondary: '查看示例报告' },
-  analyzing: { eyebrow: '正在分析', title: '正在整理这批文章', description: '正在读取篇幅、段落、句子节奏和词汇线索。很快就能看到第一版画像。', primary: '正在分析', secondary: '' },
-  preview: { eyebrow: '结果预览', title: '先确认你的写作画像', description: '先看摘要与关键判断。确认方向后，再展开完整语言画像并生成可复用的 Writing DNA。', primary: '生成 Writing DNA', secondary: '添加文章' },
-  dna: { eyebrow: 'Writing DNA', title: '你的写作 DNA 已准备好', description: '完整画像已展开。下一步将分析要点整理成可直接交给 AI 的提示词。', primary: '复制 AI 提示词', secondary: '下载分析报告' },
-  export: { eyebrow: '已准备好', title: '提示词已复制', description: '把它粘贴到支持 Writing DNA 的 AI 对话中，即可继续生成风格指南与写作模板。', primary: '导入更多文章', secondary: '下载分析报告' }
+  welcome: { eyebrow: '开始', title: '从文章开始', description: '导入文章。其余交给系统。', primary: '导入文章', secondary: '查看示例' },
+  drag: { eyebrow: '导入', title: '拖入文章', description: '支持 Markdown、文本和 ZIP。', primary: '选择文件', secondary: '查看示例' },
+  analyzing: { eyebrow: '分析中', title: '正在读取文章', description: '正在整理语言和结构。', primary: '正在分析', secondary: '' },
+  preview: { eyebrow: '预览', title: '先看写作画像', description: '确认重点。再生成 DNA。', primary: '生成 DNA', secondary: '添加文章' },
+  dna: { eyebrow: 'Writing DNA', title: '你的规则已准备好', description: '展开完整画像。复制提示词。', primary: '复制提示词', secondary: '下载报告' },
+  export: { eyebrow: '完成', title: '提示词已复制', description: '粘贴给 AI，继续写作。', primary: '导入更多', secondary: '下载报告' }
 };
 
 function setOnboardingStage(stage) {
@@ -180,11 +180,11 @@ async function addFiles(fileList) {
   try {
     const packedArticles = (await Promise.all(zipFiles.map(unpackZip))).flat();
     articles.push(...directArticles, ...packedArticles);
-    if (zipFiles.length && !packedArticles.length) alert('ZIP 中没有找到 .md 或 .txt 文章。');
+    if (zipFiles.length && !packedArticles.length) alert('ZIP 中没有可用文章。');
   } catch (error) {
     console.warn(error);
     articles.push(...directArticles);
-    alert('有一个 ZIP 无法读取。请确认它未加密，并且其中包含 .md 或 .txt 文件。');
+    alert('无法读取 ZIP。请检查文件。');
   }
   if (articles.length) {
     isDemoMode = false;
@@ -217,9 +217,9 @@ function render() {
   animateNumber($('#averageCount'), count ? Math.round(total / count) : 0);
   progressLabel.textContent = `${count} / ${requiredCount} 篇`;
   progressBar.style.width = `${Math.min(100, (count / requiredCount) * 100)}%`;
-  progressMessage.textContent = ready ? '语料已满足建议数量。可以导出并开始写作 DNA 分析。' : `还差 ${requiredCount - count} 篇完整文章；建议内容来自同一作者或账号。`;
+  progressMessage.textContent = ready ? '文章已够。可以生成 DNA。' : `还差 ${requiredCount - count} 篇。继续导入。`;
   statusCard.classList.toggle('ready', ready);
-  statusCard.innerHTML = `<span class="status-dot"></span><p><b>${ready ? '可以开始分析' : '尚未就绪'}</b><br />${ready ? '已达到建议的 20 篇语料' : `还需导入 ${requiredCount - count} 篇完整文章`}</p>`;
+  statusCard.innerHTML = `<span class="status-dot"></span><p><b>${ready ? '可以分析' : '继续导入'}</b><br />${ready ? '文章数量已足够。' : `还差 ${requiredCount - count} 篇。`}</p>`;
   clearButton.disabled = !count;
   emptyState.hidden = Boolean(count);
   articleList.innerHTML = articles.map((article, index) => `<li><span class="article-index">${String(index + 1).padStart(2, '0')}</span><span class="article-title" title="${escapeHtml(article.title)}">${escapeHtml(article.title)}</span><span class="article-meta">${formatNumber(article.characters)} 字 · ${article.type}</span><button class="remove-button" type="button" data-id="${article.id}" aria-label="移除 ${escapeHtml(article.title)}">×</button></li>`).join('');
@@ -281,31 +281,31 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   const titleQuestions = source.filter(article => /[？?]/.test(article.title)).length;
   const headingCount = countMatches(joined, /^#{1,6}\s/gm);
   const difficulty = averageSentence <= 18 ? '易读' : averageSentence <= 30 ? '适中' : '信息密集';
-  const difficultyNote = averageSentence <= 18 ? '短句占比较高，阅读推进较快。' : averageSentence <= 30 ? '句长与信息量保持平衡。' : '单句承载信息较多，适合加入短句换气。';
-  const readiness = demo ? '这是一份示例结果。上传你的文章后，所有结论会替换为仅属于你的本地统计。' : source.length >= requiredCount ? '语料规模已达到建议门槛，可以进入深入蒸馏。' : `目前有 ${source.length} 篇文章，继续补充到 20 篇后，风格判断会更稳定。`;
-  const dnaSummary = `这组文章呈现出以${dominantTone}语气为主、用${dominantNarrative}推进的表达倾向。平均每段 ${formatNumber(averageParagraph)} 字，每句 ${formatNumber(averageSentence)} 字，整体读感为${difficulty}。`;
+  const difficultyNote = averageSentence <= 18 ? '短句更多。阅读更快。' : averageSentence <= 30 ? '句长平衡。阅读顺畅。' : '单句较长。信息更密。';
+  const readiness = demo ? '这是示例。导入后会更新。' : source.length >= requiredCount ? '文章已够。可以深入分析。' : `已有 ${source.length} 篇。继续补充。`;
+  const dnaSummary = `语气偏${dominantTone}。叙事偏${dominantNarrative}。句均 ${formatNumber(averageSentence)} 字。读感${difficulty}。`;
   const openingSamples = source.slice(0, 3).map(article => compactText(firstSentence(article.text), 42));
   const endingSamples = source.slice(-3).map(article => compactText(lastSentence(article.text), 42));
-  aiPromptText = `请基于以下 Writing DNA 继续分析并输出可执行的写作指南。\n\n写作画像：${dnaSummary}\n高频关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n句子节奏：平均 ${averageSentence} 字 / 句，${rhythm.map(([name, value]) => `${name} ${value} 句`).join('；')}\n叙事方式：${dominantNarrative}\n常见语气：${dominantTone}\n\n请输出：\n1. 语言与词汇规则\n2. 标题、开头、正文、结尾的结构模板\n3. 需要保留与避免的表达方式\n4. 3 个可直接套用的写作提示词\n\n重要：所有结论都应引用或归纳这批文章中的真实模式，不能补造作者偏好。`;
+  aiPromptText = `请基于以下 Writing DNA 分析文章。\n\n画像：${dnaSummary}\n关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n节奏：句均 ${averageSentence} 字。\n叙事：${dominantNarrative}。\n语气：${dominantTone}。\n\n请输出：\n1. 语言规则\n2. 结构模板\n3. 保留表达\n4. 避免表达\n5. 三个写作提示词\n\n只依据这些文章。不要补造偏好。`;
   reportGrid.innerHTML = [
-    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA 摘要</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批写作语料')}的表达画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness"><b>${demo ? '示例报告' : source.length >= requiredCount ? '可以深入分析' : '持续收集语料'}</b><span>${escapeHtml(readiness)}</span></div>` }),
+    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批文章')}的画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness"><b>${demo ? '示例' : source.length >= requiredCount ? '可以分析' : '继续导入'}</b><span>${escapeHtml(readiness)}</span></div>` }),
     UI.Metric({ label: '阅读难度', value: difficulty, description: difficultyNote }),
-    UI.Metric({ label: '核心节奏', value: `${formatNumber(averageSentence)}<small> 字 / 句</small>`, description: `平均 ${formatNumber(averageParagraph)} 字 / 段，共 ${formatNumber(sentences.length)} 句。` }),
-    UI.Metric({ label: '写作结构', value: headingCount ? '分层' : '连贯', description: headingCount ? `检测到 ${headingCount} 个 Markdown 标题。` : '以连续段落为主，标题层级较少。' })
+    UI.Metric({ label: '句子节奏', value: `${formatNumber(averageSentence)}<small> 字 / 句</small>`, description: `段均 ${formatNumber(averageParagraph)} 字。` }),
+    UI.Metric({ label: '结构', value: headingCount ? '分层' : '连贯', description: headingCount ? `检测到 ${headingCount} 个标题。` : '以连续段落为主。' })
   ].join('');
   analysisDetailGrid.innerHTML = `
-    <article class="analysis-card vocabulary-card"><div class="card-top"><div><span class="card-label">词汇画像</span><h3>高频关键词</h3></div><span class="card-caption">本地统计</span></div><div class="bar-list">${keywords.length ? barRows(keywords, ' 次') : '<p class="card-empty">文章篇幅不足，尚未形成关键词样本。</p>'}</div></article>
-    <article class="analysis-card rhythm-card"><div class="card-top"><div><span class="card-label">句子节奏</span><h3>长短句分布</h3></div><span class="card-caption">${formatNumber(averageSentence)} 字 / 句</span></div><div class="bar-list">${barRows(rhythm, ' 句')}</div></article>
-    <article class="analysis-card"><div class="card-top"><div><span class="card-label">情绪语气</span><h3>${dominantTone}的表达倾向</h3></div><span class="card-caption">线索统计</span></div><div class="bar-list">${barRows(tone, ' 次')}</div></article>
-    <article class="analysis-card"><div class="card-top"><div><span class="card-label">叙事方式</span><h3>如何带领读者</h3></div><span class="card-caption">${dominantNarrative}</span></div><div class="bar-list">${barRows(narrative, ' 处')}</div></article>
-    <article class="analysis-card sample-card"><span class="card-label">常见开头</span><h3>前三句话如何进入主题</h3><ol>${openingSamples.map(sample => `<li>${escapeHtml(sample || '尚无开头样本')}</li>`).join('')}</ol></article>
-    <article class="analysis-card sample-card"><span class="card-label">常见结尾</span><h3>文章如何收束</h3><ol>${endingSamples.map(sample => `<li>${escapeHtml(sample || '尚无结尾样本')}</li>`).join('')}</ol></article>
-    <article class="analysis-card structure-card"><span class="card-label">结构模式</span><h3>文章的组织方式</h3><div class="structure-flow"><span>标题</span><i></i><span>${titleQuestions ? '问题切入' : '直接开场'}</span><i></i><span>${headingCount ? '分段展开' : '连续展开'}</span><i></i><span>${punctuation.question ? '互动收束' : '观点收束'}</span></div><p>标题问句 ${titleQuestions} 篇。段落平均 ${formatNumber(averageParagraph)} 字，可作为后续结构模板的参考。</p></article>
-    <article class="analysis-card prompt-card"><div class="card-top"><div><span class="card-label">AI-ready prompt</span><h3>带着这份画像继续分析</h3></div><button class="text-button copy-prompt" id="copyPromptButton" type="button">复制提示词</button></div><pre>${escapeHtml(aiPromptText)}</pre></article>`;
+    <article class="analysis-card vocabulary-card"><div class="card-top"><div><span class="card-label">词汇</span><h3>常用词</h3></div><span class="card-caption">本地统计</span></div><div class="bar-list">${keywords.length ? barRows(keywords, ' 次') : '<p class="card-empty">文章太少。还没有词汇样本。</p>'}</div></article>
+    <article class="analysis-card rhythm-card"><div class="card-top"><div><span class="card-label">节奏</span><h3>句子长度</h3></div><span class="card-caption">${formatNumber(averageSentence)} 字 / 句</span></div><div class="bar-list">${barRows(rhythm, ' 句')}</div></article>
+    <article class="analysis-card"><div class="card-top"><div><span class="card-label">语气</span><h3>${dominantTone}表达</h3></div><span class="card-caption">本地统计</span></div><div class="bar-list">${barRows(tone, ' 次')}</div></article>
+    <article class="analysis-card"><div class="card-top"><div><span class="card-label">叙事</span><h3>带领读者</h3></div><span class="card-caption">${dominantNarrative}</span></div><div class="bar-list">${barRows(narrative, ' 处')}</div></article>
+    <article class="analysis-card sample-card"><span class="card-label">开头</span><h3>如何开始</h3><ol>${openingSamples.map(sample => `<li>${escapeHtml(sample || '还没有样本')}</li>`).join('')}</ol></article>
+    <article class="analysis-card sample-card"><span class="card-label">结尾</span><h3>如何收束</h3><ol>${endingSamples.map(sample => `<li>${escapeHtml(sample || '还没有样本')}</li>`).join('')}</ol></article>
+    <article class="analysis-card structure-card"><span class="card-label">结构</span><h3>文章路径</h3><div class="structure-flow"><span>标题</span><i></i><span>${titleQuestions ? '提问开场' : '直接开场'}</span><i></i><span>${headingCount ? '分段展开' : '连续展开'}</span><i></i><span>${punctuation.question ? '互动收束' : '观点收束'}</span></div><p>问句标题 ${titleQuestions} 篇。段均 ${formatNumber(averageParagraph)} 字。</p></article>
+    <article class="analysis-card prompt-card"><div class="card-top"><div><span class="card-label">AI 提示词</span><h3>继续分析</h3></div><button class="text-button copy-prompt" id="copyPromptButton" type="button">复制提示词</button></div><pre>${escapeHtml(aiPromptText)}</pre></article>`;
   analysisDetails.open = expanded;
   demoModeBanner.hidden = !demo;
   reportSection.hidden = false;
-  reportMarkdown = `# ${demo ? '示例' : ''}Writing DNA 分析结果\n\n- 语料名称：${demo ? '示例作者文章集' : corpusInput.value.trim() || '未命名写作语料'}\n- 作者 / 账号：${demo ? '虚构示例作者' : authorInput.value.trim() || '未填写'}\n- 生成时间：${new Date().toLocaleString('zh-CN')}\n\n## Writing DNA 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇画像\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 尚未形成关键词样本'}\n\n## 句子节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 情绪语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事方式\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 常见开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 常见结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI-ready prompt\n\n${aiPromptText}\n\n> ${demo ? '这是虚构语料生成的示例报告。' : '这是一份浏览器本地统计结果，用于发现线索。完整的风格判断仍需结合全文与选题语境。'}\n`;
+  reportMarkdown = `# ${demo ? '示例 ' : ''}Writing DNA\n\n- 语料：${demo ? '示例文章' : corpusInput.value.trim() || '未命名'}\n- 作者：${demo ? '示例作者' : authorInput.value.trim() || '未填写'}\n- 时间：${new Date().toLocaleString('zh-CN')}\n\n## 摘要\n\n${dnaSummary}\n\n${readiness}\n\n## 词汇\n\n${keywords.map(([word, count]) => `- ${word}：${count} 次`).join('\n') || '- 暂无样本'}\n\n## 节奏\n\n${rhythm.map(([name, count]) => `- ${name}：${count} 句`).join('\n')}\n\n## 语气\n\n${tone.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 叙事\n\n${narrative.map(([name, count]) => `- ${name}：${count} 处`).join('\n')}\n\n## 开头\n\n${openingSamples.map(item => `- ${item}`).join('\n')}\n\n## 结尾\n\n${endingSamples.map(item => `- ${item}`).join('\n')}\n\n## AI 提示词\n\n${aiPromptText}\n\n> ${demo ? '这是示例结果。' : '结果仅基于本地统计。'}\n`;
   if (shouldScroll) reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
