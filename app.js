@@ -15,7 +15,18 @@ const scanButton = $('#scanButton');
 const clearButton = $('#clearButton');
 const reportSection = $('#reportSection');
 const reportGrid = $('#reportGrid');
+const themeToggle = $('#themeToggle');
 let reportMarkdown = '';
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
+  themeToggle.querySelector('.theme-label').textContent = theme === 'dark' ? '浅色' : '深色';
+  themeToggle.setAttribute('aria-label', theme === 'dark' ? '切换浅色模式' : '切换深色模式');
+}
+
+const savedTheme = localStorage.getItem('writing-dna-theme');
+setTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
 function formatNumber(number) { return new Intl.NumberFormat('zh-CN').format(number); }
 function countCharacters(text) { return text.replace(/\s/g, '').length; }
@@ -106,4 +117,9 @@ clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdow
 exportButton.addEventListener('click', downloadPackage);
 scanButton.addEventListener('click', buildReport);
 $('#downloadReportButton').addEventListener('click', downloadReport);
+themeToggle.addEventListener('click', () => {
+  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('writing-dna-theme', nextTheme);
+  setTheme(nextTheme);
+});
 render();
