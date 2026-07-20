@@ -18,7 +18,7 @@
           <span class="brand-page">语料工作台</span>
         </a>
         <div class="topbar-actions">
-          <p class="local-note"><i></i><span>本地处理</span></p>
+          <p class="local-note"><i></i><span>本地保存</span></p>
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色模式" aria-pressed="false"><span aria-hidden="true">◐</span><span class="theme-label">深色</span></button>
         </div>
       </header>
@@ -39,16 +39,16 @@
         <div class="upload-panel">
           <div class="section-heading"><p class="eyebrow">01 · 导入语料</p><h2>放入你的文章</h2></div>
           <label class="dropzone" id="dropzone" for="fileInput">
-            <input id="fileInput" type="file" accept=".md,.txt,text/markdown,text/plain" multiple />
+            <input id="fileInput" type="file" accept=".md,.txt,.zip,text/markdown,text/plain,application/zip,application/x-zip-compressed" multiple />
             <span class="upload-icon">↥</span>
             <strong>拖入文件，或点击选择</strong>
-            <small>支持 .md 与 .txt，可一次导入多篇</small>
+            <small>支持 .md、.txt 与 ZIP，可一次导入多篇</small>
           </label>
           <div class="field-row">
             <label>作者 / 账号<input id="authorInput" type="text" placeholder="例如：林默" /></label>
             <label>语料名称<input id="corpusInput" type="text" placeholder="例如：2026 年公众号文章" /></label>
           </div>
-          <p class="privacy-note">上传的内容不会离开本设备；刷新页面后文件将被清空。</p>
+          <p class="privacy-note">文章会自动保存在此浏览器中；内容不会上传到服务器。</p>
         </div>
 
         <aside class="insight-panel">
@@ -97,6 +97,7 @@
       </section>
     </main>
     <footer>WRITE WITH INTENTION · MADE FOR YOUR WORDS</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
