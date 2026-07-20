@@ -15,6 +15,7 @@
         <span class="upload-icon">↑</span><strong>拖入文章或 ZIP</strong><small>也可点击选择</small>
       </label>
       <div class="upload-note"><span>本地保存</span><span>建议 20 篇</span></div>
+      <p class="upload-feedback" id="importFeedback" aria-live="polite"></p>
     </div>`;
   const StatsCard = () => `
     <aside class="insight-panel ui-card">
