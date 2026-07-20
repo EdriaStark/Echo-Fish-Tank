@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="一个在浏览器本地整理文章语料、准备写作风格蒸馏的工作台。" />
+    <meta name="color-scheme" content="light dark" />
     <title>写作 DNA · 工作台</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -11,15 +12,20 @@
     <main class="shell">
       <header class="topbar">
         <a class="brand" href="#top" aria-label="写作 DNA 工作台首页">
-          <span class="brand-mark">文</span>
-          <span>写作 DNA</span>
+          <span class="brand-mark">✦</span>
+          <span class="brand-name">写作 DNA</span>
+          <span class="brand-divider">/</span>
+          <span class="brand-page">语料工作台</span>
         </a>
-        <p class="local-note"><i></i>文件仅在你的浏览器中处理</p>
+        <div class="topbar-actions">
+          <p class="local-note"><i></i><span>本地处理</span></p>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色模式" aria-pressed="false"><span aria-hidden="true">◐</span><span class="theme-label">深色</span></button>
+        </div>
       </header>
 
       <section class="hero" id="top">
-        <p class="eyebrow">WRITING STYLE DISTILLERY</p>
-        <h1>把文章，变成<br /><em>可复用的写作方法。</em></h1>
+        <p class="eyebrow">写作风格蒸馏器</p>
+        <h1>把文章，变成<br /><em>可复用的写作方法</em></h1>
         <p class="hero-copy">导入一组完整文章，整理成可供 AI 分析的语料库。积累到 20 篇后，即可开始提炼属于你的写作 DNA。</p>
       </section>
 
