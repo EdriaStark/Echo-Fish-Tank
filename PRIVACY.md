@@ -18,3 +18,9 @@ ZIP parsing loads JSZip from jsDelivr only when a user imports a ZIP. The ZIP co
 ## Current limitations
 
 Browser storage can be cleared by the user, browser policy, or private browsing mode. Export a workspace backup for durable storage. A future cloud-sync feature must be opt-in, specify storage location, and never silently upload existing workspaces.
+
+## Multiple devices
+
+Code can be synchronized through GitHub without synchronizing writing data. A workspace remains in the IndexedDB of the browser that imported it. WriDNA does not use iCloud, Git, or a product backend to copy articles to another device.
+
+Keep generated reports and `writing-dna-workspace.json` outside the repository. The repository `.gitignore` excludes the default export names as a safeguard, but users must still avoid manually adding source articles or renamed exports to Git.
