@@ -34,10 +34,10 @@
   const Metric = ({ label, value, description, className = '' }) => Card({ className: classNames('report-card', 'metric-card', className), content: `<span class="card-label">${escapeHtml(label)}</span><strong>${value}</strong><p>${escapeHtml(description)}</p>` });
   const Header = () => `
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="写作 DNA 首页"><span class="brand-mark">✦</span><span class="brand-name">写作 DNA</span><span class="brand-divider">/</span><span class="brand-page">工作台</span></a>
-      <div class="topbar-actions"><p class="local-note"><i></i><span>本地保存</span></p><button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色模式" aria-pressed="false"><span aria-hidden="true">◐</span><span class="theme-label">深色</span></button></div>
+      <a class="brand" href="#top" aria-label="WriDNA 首页"><span class="brand-mark">✦</span><span class="brand-name">WriDNA</span><span class="brand-divider">/</span><span class="brand-page">工作台</span></a>
+      <div class="topbar-actions"><span class="beta-badge"><b>Private Beta</b><span>Invite Only</span></span><p class="local-note"><i></i><span>本地保存</span></p><button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深色模式" aria-pressed="false"><span aria-hidden="true">◐</span><span class="theme-label">深色</span></button></div>
     </header>`;
-  const Footer = () => '<footer>为你的文字而建</footer>';
+  const Footer = () => '<footer><span>WriDNA Private Beta</span><span>你的写作只留在本地浏览器。</span></footer>';
 
   const components = Object.freeze({ PrimaryButton, SecondaryButton, Card, Section, UploadArea, StatsCard, ProgressCard, Metric, Header, Footer });
   window.WritingDNAComponents = components;
