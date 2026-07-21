@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="从文章中提炼你的写作规则。" />
+    <meta name="description" content="WriDNA 是一款本地优先的受邀写作工作台。" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#fbfbfa" />
     <meta name="robots" content="index,follow" />
-    <meta property="og:title" content="Writing DNA" />
-    <meta property="og:description" content="从文章中提炼你的写作规则。" />
+    <meta property="og:title" content="WriDNA" />
+    <meta property="og:description" content="本地优先的受邀写作工作台。" />
     <meta property="og:type" content="website" />
-    <link rel="canonical" href="https://edriastark.github.io/Echo-Fish-Tank/" />
-    <title>写作 DNA · 工作台</title>
+    <link rel="canonical" href="/" />
+    <title>WriDNA</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -20,19 +20,32 @@
 
       <section class="hero" id="top">
         <div class="hero-copy-block">
-          <p class="eyebrow">Writing DNA</p>
+          <p class="eyebrow">WriDNA</p>
           <h1>看见你的<br /><span>写作规律</span></h1>
-          <p class="hero-copy">上传文章。系统会整理你的表达方式。</p>
+          <p class="hero-copy">为受邀写作者准备的本地工作台。</p>
           <div class="hero-actions">
             <button class="primary-button hero-primary" id="heroUploadButton" type="button">导入文章 <span>→</span></button>
             <a class="secondary-link" href="#onboardingSection">查看示例</a>
           </div>
-          <p class="hero-reassurance">文章只在此浏览器处理。</p>
+          <p class="hero-reassurance">文章只在此浏览器处理。仅限受邀访问。</p>
         </div>
         <div id="uploadAreaMount"></div>
       </section>
 
       <div id="progressCardMount"></div>
+
+      <section class="privacy-section" id="privacy" aria-labelledby="privacyTitle">
+        <div>
+          <p class="eyebrow">隐私</p>
+          <h2 id="privacyTitle">你的文章，留在你的设备里。</h2>
+          <p>WriDNA 不会在后台上传你的写作。导出由你主动发起。</p>
+        </div>
+        <ul class="privacy-list">
+          <li><span class="privacy-check" aria-hidden="true">✓</span><span><b>Local-first</b><small>分析与保存都在本地完成。</small></span></li>
+          <li><span class="privacy-check" aria-hidden="true">✓</span><span><b>你的写作不会离开浏览器</b><small>没有隐藏上传。</small></span></li>
+          <li><span class="privacy-check" aria-hidden="true">✓</span><span><b>随时导出</b><small>报告与工作台备份都由你掌控。</small></span></li>
+        </ul>
+      </section>
 
       <details class="workspace-details">
         <summary>文章信息</summary>
@@ -82,7 +95,7 @@
 
       <section class="report-section" id="reportSection" hidden>
         <div class="report-head">
-          <div><p class="eyebrow">结果</p><h2>你的 Writing DNA</h2></div>
+          <div><p class="eyebrow">结果</p><h2>你的 WriDNA</h2></div>
           <button class="text-button" id="downloadReportButton" type="button">下载报告</button>
         </div>
         <div class="demo-mode-banner" id="demoModeBanner" hidden>
@@ -100,7 +113,20 @@
 
     </main>
     <div id="footerMount"></div>
+    <div class="welcome-backdrop" id="welcomeModal" hidden>
+      <section class="welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" aria-describedby="welcomeDescription">
+        <p class="eyebrow">Private Beta</p>
+        <h2 id="welcomeTitle">Welcome to WriDNA</h2>
+        <p id="welcomeDescription">WriDNA is currently available to a limited number of invited users.</p>
+        <p>Everything you import stays inside your browser unless you explicitly export it.</p>
+        <div class="welcome-actions">
+          <button class="primary-button" id="welcomeStartButton" type="button">Start</button>
+          <button class="secondary-button" id="welcomeLearnButton" type="button">Learn More</button>
+        </div>
+      </section>
+    </div>
     <script src="design-system.js"></script>
+    <script src="auth-boundary.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
