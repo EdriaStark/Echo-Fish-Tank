@@ -43,9 +43,13 @@ const demoUploadButton = $('#demoUploadButton');
 const onboardingEyebrow = $('#onboardingEyebrow');
 const onboardingTitle = $('#onboardingTitle');
 const onboardingDescription = $('#onboardingDescription');
-const onboardingSteps = $('#onboardingSteps');
 const onboardingSection = $('#onboardingSection');
 const onboardingSkeleton = $('#onboardingSkeleton');
+const welcomeModal = $('#welcomeModal');
+const welcomeStartButton = $('#welcomeStartButton');
+const welcomeLearnButton = $('#welcomeLearnButton');
+const welcomeStorageKey = 'wridna-welcome-seen';
+let welcomeTrigger;
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -58,8 +62,8 @@ const onboardingContent = {
   welcome: { eyebrow: '准备好时开始', title: '上传文章', description: '我们会在本地整理它们。', primary: '导入文章', secondary: '查看示例' },
   drag: { eyebrow: '导入', title: '选择文章', description: '支持 Markdown、文本和 ZIP。', primary: '选择文件', secondary: '查看示例' },
   analyzing: { eyebrow: '处理中', title: '正在整理文章', description: '很快就好。', primary: '正在整理', secondary: '' },
-  preview: { eyebrow: '已完成', title: '你的写作画像', description: '结果已准备好。', primary: '复制提示词', secondary: '添加文章' },
-  dna: { eyebrow: '已完成', title: '你的写作画像', description: '结果已准备好。', primary: '复制提示词', secondary: '下载报告' },
+  preview: { eyebrow: '已完成', title: '你的 WriDNA', description: '结果已准备好。', primary: '复制提示词', secondary: '添加文章' },
+  dna: { eyebrow: '已完成', title: '你的 WriDNA', description: '结果已准备好。', primary: '复制提示词', secondary: '下载报告' },
   export: { eyebrow: '已复制', title: '提示词已准备好', description: '粘贴给 AI，继续工作。', primary: '导入更多', secondary: '下载报告' }
 };
 
@@ -75,13 +79,19 @@ function setOnboardingStage(stage) {
   onboardingSkeleton.hidden = stage !== 'analyzing';
   onboardingSection.setAttribute('aria-busy', String(stage === 'analyzing'));
   exportButton.textContent = content.secondary;
-  if (onboardingSteps) [...onboardingSteps.querySelectorAll('li')].forEach((item, index) => {
-    const itemStage = item.dataset.stage;
-    const activeIndex = Object.keys(onboardingContent).indexOf(stage);
-    item.classList.toggle('active', itemStage === stage);
-    item.classList.toggle('complete', index < activeIndex);
-    item.classList.toggle('processing', itemStage === 'analyzing' && stage === 'analyzing');
-  });
+}
+
+function showWelcome() {
+  if (localStorage.getItem(welcomeStorageKey)) return;
+  welcomeTrigger = document.activeElement;
+  welcomeModal.hidden = false;
+  welcomeStartButton.focus();
+}
+function dismissWelcome(learnMore = false) {
+  localStorage.setItem(welcomeStorageKey, 'true');
+  welcomeModal.hidden = true;
+  if (learnMore) document.querySelector('#privacy').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else if (welcomeTrigger?.focus) welcomeTrigger.focus();
 }
 
 function animateNumber(element, target) {
@@ -139,9 +149,7 @@ function scheduleSave() {
         corpusName: corpusInput.value,
         savedAt: new Date().toISOString()
       }, 'current');
-    } catch (error) {
-      console.warn('Unable to save workspace locally.', error);
-    }
+    } catch (error) { importFeedback.textContent = '浏览器无法保存此工作台。请导出备份。'; }
   }, 250);
 }
 
@@ -207,10 +215,9 @@ async function addFiles(fileList) {
   let packedArticles = [];
   try {
     packedArticles = (await Promise.all(zipFiles.map(unpackZip))).flat();
-    if (zipFiles.length && !packedArticles.length) alert('ZIP 中没有可用文章。');
+    if (zipFiles.length && !packedArticles.length) importFeedback.textContent = 'ZIP 中没有可用文章。';
   } catch (error) {
-    console.warn(error);
-    alert('无法读取 ZIP。请检查文件。');
+    importFeedback.textContent = '无法读取 ZIP。请检查文件。';
   }
   const existing = new Set(articles.map(article => contentKey(article.text)));
   const accepted = [];
@@ -327,9 +334,9 @@ function buildReport(source = articles, demo = false, expanded = demo, shouldScr
   const endingSamples = source.slice(-3).map(article => compactText(lastSentence(article.text), 42));
   const strength = demo ? { label: '示例结果', detail: '这是虚构文章的演示。', tone: 'early' } : sampleStrength(source);
   const sourceSamples = source.slice(0, 3).map(article => ({ title: article.title, excerpt: compactText(firstSentence(article.text), 72) }));
-  aiPromptText = `请基于以下 Writing DNA 分析文章。\n\n画像：${dnaSummary}\n关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n节奏：句均 ${averageSentence} 字。\n叙事：${dominantNarrative}。\n语气：${dominantTone}。\n\n请输出：\n1. 语言规则\n2. 结构模板\n3. 保留表达\n4. 避免表达\n5. 三个写作提示词\n\n只依据这些文章。不要补造偏好。`;
+  aiPromptText = `请基于以下 WriDNA 分析文章。\n\n画像：${dnaSummary}\n关键词：${keywords.map(([word]) => word).join('、') || '待补充'}\n节奏：句均 ${averageSentence} 字。\n叙事：${dominantNarrative}。\n语气：${dominantTone}。\n\n请输出：\n1. 语言规则\n2. 结构模板\n3. 保留表达\n4. 避免表达\n5. 三个写作提示词\n\n只依据这些文章。不要补造偏好。`;
   reportGrid.innerHTML = [
-    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">Writing DNA</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批文章')}的画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness ${strength.tone}"><b>${strength.label}</b><span>${strength.detail}</span></div><details class="summary-evidence"><summary>查看样本片段</summary><ul>${sourceSamples.map(sample => `<li><b>${escapeHtml(sample.title)}</b><span>${escapeHtml(sample.excerpt)}</span></li>`).join('')}</ul></details>` }),
+    UI.Card({ className: 'dna-summary-card', content: `<div><span class="card-label">WriDNA</span><h3>${escapeHtml(demo ? '示例作者' : corpusInput.value.trim() || '这批文章')}的画像</h3><p>${escapeHtml(dnaSummary)}</p></div><div class="summary-readiness ${strength.tone}"><b>${strength.label}</b><span>${strength.detail}</span></div><details class="summary-evidence"><summary>查看样本片段</summary><ul>${sourceSamples.map(sample => `<li><b>${escapeHtml(sample.title)}</b><span>${escapeHtml(sample.excerpt)}</span></li>`).join('')}</ul></details>` }),
     UI.Metric({ label: '阅读难度', value: difficulty, description: difficultyNote }),
     UI.Metric({ label: '句子节奏', value: `${formatNumber(averageSentence)}<small> 字 / 句</small>`, description: `段均 ${formatNumber(averageParagraph)} 字。` }),
     UI.Metric({ label: '结构', value: headingCount ? '分层' : '连贯', description: headingCount ? `检测到 ${headingCount} 个标题。` : '以连续段落为主。' })
@@ -415,6 +422,18 @@ clearButton.addEventListener('click', () => { articles.length = 0; reportMarkdow
 backupButton.addEventListener('click', downloadWorkspaceBackup);
 restoreButton.addEventListener('click', () => restoreInput.click());
 restoreInput.addEventListener('change', event => { restoreWorkspace(event.target.files[0]); event.target.value = ''; });
+welcomeStartButton.addEventListener('click', () => dismissWelcome());
+welcomeLearnButton.addEventListener('click', () => dismissWelcome(true));
+document.addEventListener('keydown', event => {
+  if (welcomeModal.hidden) return;
+  if (event.key === 'Escape') { dismissWelcome(); return; }
+  if (event.key !== 'Tab') return;
+  const focusable = [...welcomeModal.querySelectorAll('button:not([disabled])')];
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 scanButton.addEventListener('click', async () => {
   if (onboardingStage === 'welcome' || onboardingStage === 'drag') {
     setOnboardingStage('drag');
@@ -464,10 +483,11 @@ async function start() {
       authorInput.value = saved.author || '';
       corpusInput.value = saved.corpusName || '';
     }
-  } catch (error) { console.warn('Unable to restore workspace locally.', error); }
+  } catch (error) { importFeedback.textContent = '无法恢复本地工作台。你仍可导入文章或恢复备份。'; }
   render();
   if (articles.length) buildReport(articles, false, false, false);
   setOnboardingStage(articles.length ? 'preview' : 'welcome');
+  showWelcome();
 }
 
 start();
