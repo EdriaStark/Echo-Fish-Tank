@@ -42,6 +42,10 @@
 
 直接用静态文件服务器预览根目录即可。私测发布说明见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
+## 双设备协作
+
+代码通过 GitHub 同步，文章保留在导入设备的浏览器中。设备 A 开发与发布，设备 B 使用或开发时的完整规则见 [WORKFLOW.md](WORKFLOW.md)。
+
 ## 发布前的仓库边界
 
 该仓库目前还包含 `socialpeta-clean/`，它是与 WriDNA 无关的独立项目。若要把本仓库用于 Product Hunt、GitHub Showcase 或作品集，请在公开发布前将该目录迁移到单独仓库（或从本仓库移除）。这项操作会改变仓库历史与公开内容，因此需要仓库所有者明确决定后再执行。
