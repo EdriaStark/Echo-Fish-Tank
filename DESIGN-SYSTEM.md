@@ -1,4 +1,4 @@
-# Writing DNA Design System
+# WriDNA Design System
 
 `design-system.js` exposes a small, dependency-free component layer on `window.WritingDNAComponents`.
 
