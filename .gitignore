@@ -1,0 +1,8 @@
+# WriDNA user exports are private data, not source code.
+writing-dna-workspace.json
+writing-dna-pre-scan.md
+
+# Local operating-system and editor files.
+.DS_Store
+.idea/
+.vscode/
