@@ -1,0 +1,10 @@
+{
+  "name": "wridna",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first writing analysis workspace.",
+  "scripts": {
+    "build": "node scripts/verify-static.mjs",
+    "test": "node scripts/verify-static.mjs"
+  }
+}
