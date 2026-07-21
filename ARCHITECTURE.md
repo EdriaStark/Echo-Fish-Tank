@@ -22,6 +22,10 @@ demo-data.js             lazy-loaded sample corpus
 
 No article content is sent to a WriDNA backend in this version.
 
+## Device boundary
+
+The codebase is portable through Git. Workspace data is intentionally not portable through Git: it belongs to the browser profile where it was imported. `.gitignore` excludes the default report and workspace backup exports so product data cannot be added by an unqualified `git add .`.
+
 ## Future authentication
 
 `auth-boundary.js` is the only intended integration point for access providers. It exposes a provider-neutral access context and contains no credentials, login form, or authorization bypass.
